@@ -1,11 +1,10 @@
 import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { z } from "zod";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-/** Load `.env` from worktree root (`../../.env` relative to apps/api/src). */
+/** Load `.env` from worktree root for drizzle-kit and other non-app entrypoints. */
 function loadEnvFile(path: string) {
   if (!existsSync(path)) return;
   const content = readFileSync(path, "utf8");
@@ -26,15 +25,4 @@ function loadEnvFile(path: string) {
   }
 }
 
-loadEnvFile(resolve(__dirname, "../../../.env"));
-
-const envSchema = z.object({
-  DATABASE_URL: z.string().min(1),
-  BETTER_AUTH_SECRET: z.string().min(32),
-  BETTER_AUTH_URL: z.string().url(),
-  WEB_ORIGIN: z.string().url(),
-  API_PUBLIC_URL: z.string().url(),
-  PORT: z.coerce.number().default(8787),
-});
-
-export const env = envSchema.parse(process.env);
+loadEnvFile(resolve(__dirname, "../../.env"));

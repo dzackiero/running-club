@@ -1,0 +1,11 @@
+import type { ContentfulStatusCode } from "hono/utils/http-status";
+import type { Context } from "hono";
+
+export function jsonError(
+  c: Context,
+  status: ContentfulStatusCode,
+  code: string,
+  message: string,
+) {
+  return c.json({ error: { code, message } }, status);
+}
