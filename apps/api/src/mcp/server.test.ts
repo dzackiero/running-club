@@ -21,6 +21,16 @@ import {
 const userId = "user_mcp_test_1";
 const testUserIds = [userId];
 
+function textContent(result: {
+  content: Array<{ type: string; text?: string }>;
+}): string {
+  const block = result.content[0];
+  if (!block || block.type !== "text" || typeof block.text !== "string") {
+    throw new Error("Expected text content block");
+  }
+  return block.text;
+}
+
 describe("MCP tool handlers", () => {
   let createdRunId: string;
 
@@ -36,24 +46,25 @@ describe("MCP tool handlers", () => {
       durationSeconds: 1500,
       activityType: "run",
     });
-    expect(result.content[0]?.text).toContain("5000");
+    const text = textContent(result);
+    expect(text).toContain("5000");
     expect(result.isError).toBeUndefined();
 
-    const parsed = JSON.parse(result.content[0]!.text);
+    const parsed = JSON.parse(text);
     createdRunId = parsed.id;
     expect(parsed.userId).toBe(userId);
   });
 
   it("list_runs returns runs for the user", async () => {
     const result = await handleListRuns(userId, { limit: 10 });
-    const runs = JSON.parse(result.content[0]!.text);
+    const runs = JSON.parse(textContent(result));
     expect(Array.isArray(runs)).toBe(true);
     expect(runs.some((r: { id: string }) => r.id === createdRunId)).toBe(true);
   });
 
   it("get_run returns a single run", async () => {
     const result = await handleGetRun(userId, { id: createdRunId });
-    const runRecord = JSON.parse(result.content[0]!.text);
+    const runRecord = JSON.parse(textContent(result));
     expect(runRecord.id).toBe(createdRunId);
     expect(runRecord.distanceMeters).toBe(5000);
   });
@@ -63,7 +74,7 @@ describe("MCP tool handlers", () => {
       id: createdRunId,
       distanceMeters: 5200,
     });
-    const runRecord = JSON.parse(result.content[0]!.text);
+    const runRecord = JSON.parse(textContent(result));
     expect(runRecord.distanceMeters).toBe(5200);
   });
 
@@ -72,14 +83,14 @@ describe("MCP tool handlers", () => {
       weekStartsOn: 1,
       targetDistanceMeters: 25000,
     });
-    const goal = JSON.parse(result.content[0]!.text);
+    const goal = JSON.parse(textContent(result));
     expect(goal.active).toBe(true);
     expect(goal.targetDistanceMeters).toBe(25000);
   });
 
   it("get_weekly_progress includes totals and goal", async () => {
     const result = await handleGetWeeklyProgress(userId, {});
-    const progress = JSON.parse(result.content[0]!.text);
+    const progress = JSON.parse(textContent(result));
     expect(progress.totals.runCount).toBeGreaterThanOrEqual(1);
     expect(progress.goal?.targetDistanceMeters).toBe(25000);
   });
@@ -89,14 +100,14 @@ describe("MCP tool handlers", () => {
       from: "2026-08-01T00:00:00.000Z",
       to: "2026-08-31T23:59:59.000Z",
     });
-    const summary = JSON.parse(result.content[0]!.text);
+    const summary = JSON.parse(textContent(result));
     expect(summary.runCount).toBeGreaterThanOrEqual(1);
     expect(summary.totalDistanceMeters).toBeGreaterThanOrEqual(5200);
   });
 
   it("delete_run removes the run", async () => {
     const result = await handleDeleteRun(userId, { id: createdRunId });
-    expect(result.content[0]?.text).toContain(createdRunId);
+    expect(textContent(result)).toContain(createdRunId);
     expect(result.isError).toBeUndefined();
 
     const missing = await handleGetRun(userId, { id: createdRunId });
@@ -111,7 +122,7 @@ describe("MCP tool handlers", () => {
       activityType: "run",
     });
     expect(result.isError).toBe(true);
-    expect(result.content[0]?.text).toContain("Validation error");
+    expect(textContent(result)).toContain("Validation error");
   });
 });
 

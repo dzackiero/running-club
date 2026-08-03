@@ -1,4 +1,4 @@
-import { exportJWK, generateKeyPair, type JWK, type KeyLike, SignJWT } from "jose";
+import { exportJWK, generateKeyPair, type JWK, SignJWT } from "jose";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { app } from "../app";
 import { AUTH_ISSUER, MCP_RESOURCE, verifyMcpAccessToken } from "../mcp/auth";
@@ -69,7 +69,7 @@ describe("verifyMcpAccessToken", () => {
  */
 describe("verifyMcpAccessToken issuer/audience", () => {
   const kid = "task7-test-key";
-  let privateKey: KeyLike;
+  let privateKey: CryptoKey;
   let publicJwk: JWK;
   let fetchMock: ReturnType<typeof vi.fn>;
 

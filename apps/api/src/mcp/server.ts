@@ -4,8 +4,7 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import {
   createRunSchema,
   summaryQuerySchema,
-  updateRunSchema,
-  upsertWeeklyGoalSchema,
+  upsertWeeklyGoalObjectSchema,
 } from "@running-club/shared";
 import { env } from "../env";
 import { MCP_RESOURCE, verifyMcpAccessToken } from "./auth";
@@ -113,7 +112,7 @@ function createRunningClubMcpServer(userId: string): McpServer {
     "set_weekly_goal",
     {
       description: "Set or replace the active weekly goal",
-      inputSchema: upsertWeeklyGoalSchema.shape,
+      inputSchema: upsertWeeklyGoalObjectSchema.shape,
     },
     (args) => handleSetWeeklyGoal(userId, args),
   );
