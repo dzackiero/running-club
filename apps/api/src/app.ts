@@ -4,6 +4,7 @@ import { auth } from "./auth";
 import { env } from "./env";
 import { requireUser } from "./middleware/require-user";
 import { sessionMiddleware } from "./middleware/session";
+import { runsRoutes } from "./routes/runs";
 
 export type AppEnv = {
   Variables: {
@@ -34,3 +35,6 @@ app.get("/health", (c) => c.json({ ok: true }));
 app.get("/api/me", requireUser, (c) =>
   c.json({ user: c.get("user"), session: c.get("session") }),
 );
+
+app.use("/runs/*", requireUser);
+app.route("/runs", runsRoutes);
