@@ -1,0 +1,31 @@
+import { inArray } from "drizzle-orm";
+import { afterAll, describe, expect, it } from "vitest";
+import { db } from "../db/client";
+import { weeklyGoal } from "../db/schema";
+import { getCurrentGoal, upsertCurrentGoal } from "./goals";
+
+const userId = "user_test_goals_1";
+const testUserIds = [userId];
+
+describe("goals service", () => {
+  afterAll(async () => {
+    await db.delete(weeklyGoal).where(inArray(weeklyGoal.userId, testUserIds));
+  });
+
+  it("upsert replaces previous active goal", async () => {
+    const first = await upsertCurrentGoal(userId, {
+      weekStartsOn: 1,
+      targetDistanceMeters: 30000,
+    });
+    const second = await upsertCurrentGoal(userId, {
+      weekStartsOn: 1,
+      targetDistanceMeters: 40000,
+      targetRunCount: 4,
+    });
+    expect(second.active).toBe(true);
+    expect(second.targetDistanceMeters).toBe(40000);
+    const current = await getCurrentGoal(userId);
+    expect(current?.id).toBe(second.id);
+    expect(current?.id).not.toBe(first.id);
+  });
+});

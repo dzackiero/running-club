@@ -4,6 +4,7 @@ import { auth } from "./auth";
 import { env } from "./env";
 import { requireUser } from "./middleware/require-user";
 import { sessionMiddleware } from "./middleware/session";
+import { goalsRoutes } from "./routes/goals";
 import { runsRoutes } from "./routes/runs";
 
 export type AppEnv = {
@@ -38,3 +39,6 @@ app.get("/api/me", requireUser, (c) =>
 
 app.use("/runs/*", requireUser);
 app.route("/runs", runsRoutes);
+
+app.use("/goals/*", requireUser);
+app.route("/goals", goalsRoutes);
