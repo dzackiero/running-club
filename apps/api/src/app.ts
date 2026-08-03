@@ -10,6 +10,7 @@ import {
   getProtectedResourceMetadata,
   protectedResourceMetadataResponse,
 } from "./mcp/auth";
+import { handleMcpRequest } from "./mcp/server";
 import { requireUser } from "./middleware/require-user";
 import { sessionMiddleware } from "./middleware/session";
 import { goalsRoutes } from "./routes/goals";
@@ -29,10 +30,20 @@ app.use(
   "*",
   cors({
     origin: env.WEB_ORIGIN,
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: [
+      "Content-Type",
+      "Authorization",
+      "mcp-session-id",
+      "Last-Event-ID",
+      "mcp-protocol-version",
+    ],
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: true,
-    exposeHeaders: ["WWW-Authenticate"],
+    exposeHeaders: [
+      "WWW-Authenticate",
+      "mcp-session-id",
+      "mcp-protocol-version",
+    ],
   }),
 );
 
@@ -65,6 +76,8 @@ app.get(
   "/.well-known/oauth-protected-resource/mcp",
   oauthProtectedResourceHandler,
 );
+
+app.all("/mcp", async (c) => handleMcpRequest(c.req.raw));
 
 app.use("*", sessionMiddleware);
 
