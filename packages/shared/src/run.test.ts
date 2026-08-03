@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRunSchema } from "./run";
+import { createRunSchema, listRunsQuerySchema } from "./run";
 
 describe("createRunSchema", () => {
   it("accepts required fields only", () => {
@@ -40,5 +40,22 @@ describe("createRunSchema", () => {
     });
     expect(parsed.avgHeartRate).toBe(150);
     expect(parsed.activityType).toBe("trail");
+  });
+});
+
+describe("listRunsQuerySchema", () => {
+  it("accepts empty filters", () => {
+    expect(listRunsQuerySchema.parse({})).toEqual({});
+  });
+
+  it("coerces limit from string (REST query params)", () => {
+    const parsed = listRunsQuerySchema.parse({ limit: "10" });
+    expect(parsed.limit).toBe(10);
+  });
+
+  it("rejects invalid activityType", () => {
+    expect(() =>
+      listRunsQuerySchema.parse({ activityType: "swim" }),
+    ).toThrow();
   });
 });

@@ -1,6 +1,6 @@
 import {
-  activityTypes,
   createRunSchema,
+  listRunsQuerySchema,
   summaryQuerySchema,
   updateRunSchema,
   upsertWeeklyGoalSchema,
@@ -17,13 +17,7 @@ import {
   updateRun,
 } from "../services/runs";
 
-export const listRunsToolSchema = z.object({
-  from: z.string().datetime().optional(),
-  to: z.string().datetime().optional(),
-  activityType: z.enum(activityTypes).optional(),
-  limit: z.number().int().positive().max(100).optional(),
-  cursor: z.string().datetime().optional(),
-});
+export const listRunsToolSchema = listRunsQuerySchema;
 
 export const runIdToolSchema = z.object({
   id: z.string().uuid(),

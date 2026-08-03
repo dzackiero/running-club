@@ -1,9 +1,11 @@
-import type { SummaryQuery } from "@running-club/shared";
+import type { SummaryQuery, WeekProgress } from "@running-club/shared";
 import { and, eq, gte, lte } from "drizzle-orm";
 import { db } from "../db/client";
 import { run } from "../db/schema";
 import { avgPaceSecPerKm } from "../lib/pace";
-import { getCurrentGoal, type WeeklyGoalRecord } from "./goals";
+import { getCurrentGoal } from "./goals";
+
+export type { WeekProgress };
 
 export type Summary = {
   from: string;
@@ -18,22 +20,6 @@ export type Summary = {
     totalDurationSeconds: number;
     runCount: number;
     avgPaceSecPerKm: number | null;
-  };
-};
-
-export type WeekProgress = {
-  weekStart: string;
-  weekEnd: string;
-  totals: {
-    distanceMeters: number;
-    durationSeconds: number;
-    runCount: number;
-  };
-  goal: WeeklyGoalRecord | null;
-  progress: {
-    distanceRatio: number | null;
-    durationRatio: number | null;
-    runCountRatio: number | null;
   };
 };
 

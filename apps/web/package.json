@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@better-auth/oauth-provider": "1.6.25",
+    "@running-club/shared": "workspace:*",
     "better-auth": "1.6.25",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

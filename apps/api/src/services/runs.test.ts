@@ -1,16 +1,18 @@
-import { inArray } from "drizzle-orm";
-import { afterAll, describe, expect, it } from "vitest";
-import { db } from "../db/client";
-import { run } from "../db/schema";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createRun, deleteRun, getRun, listRuns } from "./runs";
+import { deleteTestUsers, ensureTestUsers } from "../test/users";
 
 const userId = "user_test_1";
 const otherUserId = "user_test_other";
 const testUserIds = [userId, otherUserId];
 
 describe("runs service", () => {
+  beforeAll(async () => {
+    await ensureTestUsers(testUserIds);
+  });
+
   afterAll(async () => {
-    await db.delete(run).where(inArray(run.userId, testUserIds));
+    await deleteTestUsers(testUserIds);
   });
 
   it("creates a run with required fields and derived pace", async () => {

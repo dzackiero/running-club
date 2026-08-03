@@ -1,7 +1,5 @@
-import { inArray } from "drizzle-orm";
-import { afterAll, describe, expect, it } from "vitest";
-import { db } from "../db/client";
-import { run, weeklyGoal } from "../db/schema";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { deleteTestUsers, ensureTestUsers } from "../test/users";
 import { upsertCurrentGoal } from "./goals";
 import { createRun } from "./runs";
 import { getSummary, getWeekProgress } from "./insights";
@@ -12,9 +10,12 @@ const noGoalUserId = "user_test_insights_no_goal";
 const testUserIds = [summaryUserId, weekUserId, noGoalUserId];
 
 describe("insights service", () => {
+  beforeAll(async () => {
+    await ensureTestUsers(testUserIds);
+  });
+
   afterAll(async () => {
-    await db.delete(run).where(inArray(run.userId, testUserIds));
-    await db.delete(weeklyGoal).where(inArray(weeklyGoal.userId, testUserIds));
+    await deleteTestUsers(testUserIds);
   });
 
   it("getSummary aggregates current period and compares to previous period", async () => {

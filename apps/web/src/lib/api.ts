@@ -1,3 +1,11 @@
+import type {
+  CreateRunInput,
+  RunRecord,
+  UpsertWeeklyGoalInput,
+  WeekProgress,
+  WeeklyGoalRecord,
+} from "@running-club/shared";
+
 const baseUrl = import.meta.env.VITE_API_URL;
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -22,38 +30,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export type RunRecord = {
-  id: string;
-  startedAt: string;
-  distanceMeters: number;
-  durationSeconds: number;
-  activityType: string;
-  avgPaceSecPerKm: number | null;
-};
-
-export type WeeklyGoalRecord = {
-  id: string;
-  weekStartsOn: number;
-  targetDistanceMeters: number | null;
-  targetDurationSeconds: number | null;
-  targetRunCount: number | null;
-};
-
-export type WeekProgress = {
-  weekStart: string;
-  weekEnd: string;
-  totals: {
-    distanceMeters: number;
-    durationSeconds: number;
-    runCount: number;
-  };
-  goal: WeeklyGoalRecord | null;
-  progress: {
-    distanceRatio: number | null;
-    durationRatio: number | null;
-    runCountRatio: number | null;
-  };
-};
+export type { RunRecord, WeeklyGoalRecord, WeekProgress };
 
 export function listRuns(limit = 10) {
   return apiFetch<RunRecord[]>(`/runs?limit=${limit}`);
@@ -67,24 +44,14 @@ export function getCurrentGoal() {
   return apiFetch<WeeklyGoalRecord | null>("/goals/current");
 }
 
-export function putCurrentGoal(body: {
-  weekStartsOn: number;
-  targetDistanceMeters?: number;
-  targetDurationSeconds?: number;
-  targetRunCount?: number;
-}) {
+export function putCurrentGoal(body: UpsertWeeklyGoalInput) {
   return apiFetch<WeeklyGoalRecord>("/goals/current", {
     method: "PUT",
     body: JSON.stringify(body),
   });
 }
 
-export function createRun(body: {
-  startedAt: string;
-  distanceMeters: number;
-  durationSeconds: number;
-  activityType: "run" | "trail" | "treadmill" | "race";
-}) {
+export function createRun(body: CreateRunInput) {
   return apiFetch<RunRecord>("/runs", {
     method: "POST",
     body: JSON.stringify(body),

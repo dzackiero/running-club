@@ -28,7 +28,41 @@ export const createRunSchema = z.object({
   externalId: z.string().optional(),
 });
 
-export type CreateRunInput = z.infer<typeof createRunSchema>;
+export type CreateRunInput = z.input<typeof createRunSchema>;
 
 export const updateRunSchema = createRunSchema.partial();
-export type UpdateRunInput = z.infer<typeof updateRunSchema>;
+export type UpdateRunInput = z.input<typeof updateRunSchema>;
+
+/** Shared list filters for REST query params and MCP list_runs. */
+export const listRunsQuerySchema = z.object({
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  activityType: z.enum(activityTypes).optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  cursor: z.string().datetime().optional(),
+});
+
+export type ListRunsQuery = z.infer<typeof listRunsQuerySchema>;
+
+export type RunRecord = {
+  id: string;
+  userId: string;
+  startedAt: string;
+  distanceMeters: number;
+  durationSeconds: number;
+  activityType: string;
+  avgHeartRate: number | null;
+  maxHeartRate: number | null;
+  elevationGainMeters: number | null;
+  calories: number | null;
+  avgCadence: number | null;
+  perceivedEffort: number | null;
+  notes: string | null;
+  splits: { distanceMeters: number; durationSeconds: number }[] | null;
+  polyline: string | null;
+  source: string;
+  externalId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  avgPaceSecPerKm: number | null;
+};

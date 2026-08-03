@@ -1,4 +1,9 @@
-import { createRunSchema, updateRunSchema } from "@running-club/shared";
+import {
+  createRunSchema,
+  errorCodes,
+  listRunsQuerySchema,
+  updateRunSchema,
+} from "@running-club/shared";
 import { Hono } from "hono";
 import { ZodError } from "zod";
 import type { AppEnv } from "../app";
@@ -18,7 +23,12 @@ runsRoutes.post("/", async (c) => {
   try {
     body = await c.req.json();
   } catch {
-    return jsonError(c, 400, "INVALID_JSON", "Request body must be valid JSON");
+    return jsonError(
+      c,
+      400,
+      errorCodes.VALIDATION,
+      "Request body must be valid JSON",
+    );
   }
 
   try {
@@ -28,7 +38,7 @@ runsRoutes.post("/", async (c) => {
     return c.json(run, 201);
   } catch (err) {
     if (err instanceof ZodError) {
-      return jsonError(c, 400, "VALIDATION_ERROR", err.message);
+      return jsonError(c, 400, errorCodes.VALIDATION, err.message);
     }
     throw err;
   }
@@ -36,17 +46,18 @@ runsRoutes.post("/", async (c) => {
 
 runsRoutes.get("/", async (c) => {
   const user = c.get("user")!;
-  const { from, to, activityType, limit, cursor } = c.req.query();
+  const raw = c.req.query();
 
-  const runs = await listRuns(user.id, {
-    from,
-    to,
-    activityType,
-    limit: limit ? Number(limit) : undefined,
-    cursor,
-  });
-
-  return c.json(runs);
+  try {
+    const query = listRunsQuerySchema.parse(raw);
+    const runs = await listRuns(user.id, query);
+    return c.json(runs);
+  } catch (err) {
+    if (err instanceof ZodError) {
+      return jsonError(c, 400, errorCodes.VALIDATION, err.message);
+    }
+    throw err;
+  }
 });
 
 runsRoutes.get("/:id", async (c) => {
@@ -54,7 +65,7 @@ runsRoutes.get("/:id", async (c) => {
   const run = await getRun(user.id, c.req.param("id"));
 
   if (!run) {
-    return jsonError(c, 404, "NOT_FOUND", "Run not found");
+    return jsonError(c, 404, errorCodes.NOT_FOUND, "Run not found");
   }
 
   return c.json(run);
@@ -65,7 +76,12 @@ runsRoutes.patch("/:id", async (c) => {
   try {
     body = await c.req.json();
   } catch {
-    return jsonError(c, 400, "INVALID_JSON", "Request body must be valid JSON");
+    return jsonError(
+      c,
+      400,
+      errorCodes.VALIDATION,
+      "Request body must be valid JSON",
+    );
   }
 
   try {
@@ -74,13 +90,13 @@ runsRoutes.patch("/:id", async (c) => {
     const run = await updateRun(user.id, c.req.param("id"), input);
 
     if (!run) {
-      return jsonError(c, 404, "NOT_FOUND", "Run not found");
+      return jsonError(c, 404, errorCodes.NOT_FOUND, "Run not found");
     }
 
     return c.json(run);
   } catch (err) {
     if (err instanceof ZodError) {
-      return jsonError(c, 400, "VALIDATION_ERROR", err.message);
+      return jsonError(c, 400, errorCodes.VALIDATION, err.message);
     }
     throw err;
   }
@@ -91,7 +107,7 @@ runsRoutes.delete("/:id", async (c) => {
   const deleted = await deleteRun(user.id, c.req.param("id"));
 
   if (!deleted) {
-    return jsonError(c, 404, "NOT_FOUND", "Run not found");
+    return jsonError(c, 404, errorCodes.NOT_FOUND, "Run not found");
   }
 
   return c.body(null, 204);

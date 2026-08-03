@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -294,7 +294,9 @@ export const run = pgTable(
   "run",
   {
     id: text("id").primaryKey(),
-    userId: text("user_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
     distanceMeters: real("distance_meters").notNull(),
     durationSeconds: integer("duration_seconds").notNull(),
@@ -326,18 +328,28 @@ export const run = pgTable(
   }),
 );
 
-export const weeklyGoal = pgTable("weekly_goal", {
-  id: text("id").primaryKey(),
-  userId: text("user_id").notNull(),
-  weekStartsOn: integer("week_starts_on").notNull().default(1),
-  targetDistanceMeters: real("target_distance_meters"),
-  targetDurationSeconds: integer("target_duration_seconds"),
-  targetRunCount: integer("target_run_count"),
-  active: boolean("active").notNull().default(true),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const weeklyGoal = pgTable(
+  "weekly_goal",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    weekStartsOn: integer("week_starts_on").notNull().default(1),
+    targetDistanceMeters: real("target_distance_meters"),
+    targetDurationSeconds: integer("target_duration_seconds"),
+    targetRunCount: integer("target_run_count"),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    oneActivePerUser: uniqueIndex("weekly_goal_one_active_per_user")
+      .on(t.userId)
+      .where(sql`${t.active} = true`),
+  }),
+);

@@ -1,40 +1,16 @@
-import { createRunSchema, type UpdateRunInput } from "@running-club/shared";
+import {
+  createRunSchema,
+  type ListRunsQuery,
+  type RunRecord,
+  type UpdateRunInput,
+} from "@running-club/shared";
 import type { z } from "zod";
 import { and, desc, eq, gte, lt, lte } from "drizzle-orm";
 import { db } from "../db/client";
 import { run } from "../db/schema";
 import { avgPaceSecPerKm } from "../lib/pace";
 
-export type RunRecord = {
-  id: string;
-  userId: string;
-  startedAt: string;
-  distanceMeters: number;
-  durationSeconds: number;
-  activityType: string;
-  avgHeartRate: number | null;
-  maxHeartRate: number | null;
-  elevationGainMeters: number | null;
-  calories: number | null;
-  avgCadence: number | null;
-  perceivedEffort: number | null;
-  notes: string | null;
-  splits: { distanceMeters: number; durationSeconds: number }[] | null;
-  polyline: string | null;
-  source: string;
-  externalId: string | null;
-  createdAt: string;
-  updatedAt: string;
-  avgPaceSecPerKm: number | null;
-};
-
-export type ListRunsOptions = {
-  from?: string;
-  to?: string;
-  activityType?: string;
-  limit?: number;
-  cursor?: string;
-};
+export type { RunRecord };
 
 type RunRow = typeof run.$inferSelect;
 
@@ -98,7 +74,7 @@ export async function createRun(
 
 export async function listRuns(
   userId: string,
-  options: ListRunsOptions = {},
+  options: ListRunsQuery = {},
 ): Promise<RunRecord[]> {
   const conditions = [eq(run.userId, userId)];
 

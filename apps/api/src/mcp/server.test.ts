@@ -1,8 +1,6 @@
-import { inArray } from "drizzle-orm";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { app } from "../app";
-import { db } from "../db/client";
-import { run, weeklyGoal } from "../db/schema";
+import { deleteTestUsers, ensureTestUsers } from "../test/users";
 import {
   handleDeleteRun,
   handleGetRun,
@@ -34,9 +32,12 @@ function textContent(result: {
 describe("MCP tool handlers", () => {
   let createdRunId: string;
 
+  beforeAll(async () => {
+    await ensureTestUsers(testUserIds);
+  });
+
   afterAll(async () => {
-    await db.delete(run).where(inArray(run.userId, testUserIds));
-    await db.delete(weeklyGoal).where(inArray(weeklyGoal.userId, testUserIds));
+    await deleteTestUsers(testUserIds);
   });
 
   it("log_run creates a run for the authenticated user", async () => {

@@ -1,4 +1,4 @@
-import { summaryQuerySchema } from "@running-club/shared";
+import { errorCodes, summaryQuerySchema } from "@running-club/shared";
 import { Hono } from "hono";
 import { ZodError } from "zod";
 import type { AppEnv } from "../app";
@@ -17,7 +17,7 @@ insightsRoutes.get("/summary", async (c) => {
     return c.json(summary);
   } catch (err) {
     if (err instanceof ZodError) {
-      return jsonError(c, 400, "VALIDATION_ERROR", err.message);
+      return jsonError(c, 400, errorCodes.VALIDATION, err.message);
     }
     throw err;
   }

@@ -1,15 +1,20 @@
-import { and, eq, inArray } from "drizzle-orm";
-import { afterAll, describe, expect, it } from "vitest";
+import { and, eq } from "drizzle-orm";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "../db/client";
 import { weeklyGoal } from "../db/schema";
+import { deleteTestUsers, ensureTestUsers } from "../test/users";
 import { getCurrentGoal, upsertCurrentGoal } from "./goals";
 
 const userId = "user_test_goals_1";
 const testUserIds = [userId];
 
 describe("goals service", () => {
+  beforeAll(async () => {
+    await ensureTestUsers(testUserIds);
+  });
+
   afterAll(async () => {
-    await db.delete(weeklyGoal).where(inArray(weeklyGoal.userId, testUserIds));
+    await deleteTestUsers(testUserIds);
   });
 
   it("upsert replaces previous active goal", async () => {

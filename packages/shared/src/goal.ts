@@ -20,3 +20,15 @@ export const upsertWeeklyGoalSchema = upsertWeeklyGoalObjectSchema.refine(
 );
 
 export type UpsertWeeklyGoalInput = z.infer<typeof upsertWeeklyGoalSchema>;
+
+export type WeeklyGoalRecord = {
+  id: string;
+  userId: string;
+  weekStartsOn: number;
+  targetDistanceMeters: number | null;
+  targetDurationSeconds: number | null;
+  targetRunCount: number | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+};

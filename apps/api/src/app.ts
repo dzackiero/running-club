@@ -87,11 +87,14 @@ app.get("/api/me", requireUser, (c) =>
   c.json({ user: c.get("user"), session: c.get("session") }),
 );
 
+app.use("/runs", requireUser);
 app.use("/runs/*", requireUser);
 app.route("/runs", runsRoutes);
 
+app.use("/goals", requireUser);
 app.use("/goals/*", requireUser);
 app.route("/goals", goalsRoutes);
 
+app.use("/insights", requireUser);
 app.use("/insights/*", requireUser);
 app.route("/insights", insightsRoutes);
