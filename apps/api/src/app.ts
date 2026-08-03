@@ -5,6 +5,7 @@ import { env } from "./env";
 import { requireUser } from "./middleware/require-user";
 import { sessionMiddleware } from "./middleware/session";
 import { goalsRoutes } from "./routes/goals";
+import { insightsRoutes } from "./routes/insights";
 import { runsRoutes } from "./routes/runs";
 
 export type AppEnv = {
@@ -42,3 +43,6 @@ app.route("/runs", runsRoutes);
 
 app.use("/goals/*", requireUser);
 app.route("/goals", goalsRoutes);
+
+app.use("/insights/*", requireUser);
+app.route("/insights", insightsRoutes);
