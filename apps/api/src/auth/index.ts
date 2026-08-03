@@ -19,6 +19,8 @@ export const auth = betterAuth({
       consentPage: `${env.WEB_ORIGIN}/consent`,
       allowDynamicClientRegistration: true,
       allowUnauthenticatedClientRegistration: true,
+      // MCP resource identifier — clients request this as `resource` / JWT `aud`
+      validAudiences: [`${env.API_PUBLIC_URL}/mcp`],
       silenceWarnings: {
         oauthAuthServerConfig: true,
       },

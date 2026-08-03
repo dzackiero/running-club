@@ -17,11 +17,11 @@ const PROTECTED_RESOURCE_CACHE_CONTROL =
   "public, max-age=15, stale-while-revalidate=15, stale-if-error=86400";
 
 function extractBearerToken(req: Request): string | undefined {
-  const authorization = req.headers.get("authorization") ?? undefined;
+  const authorization = req.headers.get("authorization");
   if (!authorization) return undefined;
-  return authorization.startsWith("Bearer ")
-    ? authorization.slice("Bearer ".length)
-    : authorization;
+  // RFC 6750: only the Bearer scheme is accepted for MCP access tokens
+  const match = /^Bearer\s+(\S+)\s*$/i.exec(authorization);
+  return match?.[1];
 }
 
 export async function getProtectedResourceMetadata() {
@@ -50,7 +50,10 @@ export async function verifyMcpAccessToken(
 
   try {
     const payload = await resourceClient.verifyAccessToken(accessToken, {
-      verifyOptions: { audience: MCP_RESOURCE },
+      verifyOptions: {
+        issuer: AUTH_ISSUER,
+        audience: MCP_RESOURCE,
+      },
     });
     const userId = payload.sub;
     if (typeof userId !== "string" || !userId) return null;

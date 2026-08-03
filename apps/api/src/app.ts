@@ -60,7 +60,11 @@ async function oauthProtectedResourceHandler() {
 }
 
 app.get("/.well-known/oauth-protected-resource", oauthProtectedResourceHandler);
-app.get("/mcp/.well-known/oauth-protected-resource", oauthProtectedResourceHandler);
+// RFC 9728 path-aware PRM for resource `${API_PUBLIC_URL}/mcp`
+app.get(
+  "/.well-known/oauth-protected-resource/mcp",
+  oauthProtectedResourceHandler,
+);
 
 app.use("*", sessionMiddleware);
 

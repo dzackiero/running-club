@@ -12,19 +12,20 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@better-auth/oauth-provider": "1.6.25",
+    "@hono/node-server": "1.19.17",
+    "@modelcontextprotocol/sdk": "1.30.0",
     "@running-club/shared": "workspace:*",
     "better-auth": "1.6.25",
-    "@better-auth/oauth-provider": "1.6.25",
     "drizzle-orm": "0.45.2",
     "hono": "4.12.34",
-    "@hono/node-server": "1.19.17",
     "postgres": "3.4.9",
-    "zod": "3.25.76",
-    "@modelcontextprotocol/sdk": "1.30.0"
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@types/node": "22.20.1",
     "drizzle-kit": "0.31.10",
+    "jose": "6.2.7",
     "tsx": "4.23.5",
     "typescript": "5.9.3",
     "vitest": "3.2.7"
