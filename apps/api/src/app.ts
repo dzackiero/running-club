@@ -1,7 +1,15 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import {
+  oauthProviderAuthServerMetadata,
+  oauthProviderOpenIdConfigMetadata,
+} from "@better-auth/oauth-provider";
 import { auth } from "./auth";
 import { env } from "./env";
+import {
+  getProtectedResourceMetadata,
+  protectedResourceMetadataResponse,
+} from "./mcp/auth";
 import { requireUser } from "./middleware/require-user";
 import { sessionMiddleware } from "./middleware/session";
 import { goalsRoutes } from "./routes/goals";
@@ -29,6 +37,30 @@ app.use(
 );
 
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
+
+const authServerMetadata = oauthProviderAuthServerMetadata(auth);
+const openIdConfigMetadata = oauthProviderOpenIdConfigMetadata(auth);
+
+app.get("/.well-known/oauth-authorization-server", (c) =>
+  authServerMetadata(c.req.raw),
+);
+app.get("/.well-known/oauth-authorization-server/api/auth", (c) =>
+  authServerMetadata(c.req.raw),
+);
+app.get("/.well-known/openid-configuration", (c) =>
+  openIdConfigMetadata(c.req.raw),
+);
+app.get("/.well-known/openid-configuration/api/auth", (c) =>
+  openIdConfigMetadata(c.req.raw),
+);
+
+async function oauthProtectedResourceHandler() {
+  const metadata = await getProtectedResourceMetadata();
+  return protectedResourceMetadataResponse(metadata);
+}
+
+app.get("/.well-known/oauth-protected-resource", oauthProtectedResourceHandler);
+app.get("/mcp/.well-known/oauth-protected-resource", oauthProtectedResourceHandler);
 
 app.use("*", sessionMiddleware);
 
