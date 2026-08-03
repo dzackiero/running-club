@@ -47,24 +47,26 @@ export async function upsertCurrentGoal(
   userId: string,
   input: UpsertWeeklyGoalInput,
 ): Promise<WeeklyGoalRecord> {
-  await db
-    .update(weeklyGoal)
-    .set({ active: false, updatedAt: new Date() })
-    .where(and(eq(weeklyGoal.userId, userId), eq(weeklyGoal.active, true)));
+  return db.transaction(async (tx) => {
+    await tx
+      .update(weeklyGoal)
+      .set({ active: false, updatedAt: new Date() })
+      .where(and(eq(weeklyGoal.userId, userId), eq(weeklyGoal.active, true)));
 
-  const id = crypto.randomUUID();
-  const [row] = await db
-    .insert(weeklyGoal)
-    .values({
-      id,
-      userId,
-      weekStartsOn: input.weekStartsOn,
-      targetDistanceMeters: input.targetDistanceMeters,
-      targetDurationSeconds: input.targetDurationSeconds,
-      targetRunCount: input.targetRunCount,
-      active: true,
-    })
-    .returning();
+    const id = crypto.randomUUID();
+    const [row] = await tx
+      .insert(weeklyGoal)
+      .values({
+        id,
+        userId,
+        weekStartsOn: input.weekStartsOn,
+        targetDistanceMeters: input.targetDistanceMeters,
+        targetDurationSeconds: input.targetDurationSeconds,
+        targetRunCount: input.targetRunCount,
+        active: true,
+      })
+      .returning();
 
-  return toWeeklyGoalRecord(row);
+    return toWeeklyGoalRecord(row);
+  });
 }

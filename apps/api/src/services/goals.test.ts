@@ -1,4 +1,4 @@
-import { inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import { db } from "../db/client";
 import { weeklyGoal } from "../db/schema";
@@ -27,5 +27,18 @@ describe("goals service", () => {
     const current = await getCurrentGoal(userId);
     expect(current?.id).toBe(second.id);
     expect(current?.id).not.toBe(first.id);
+
+    const activeGoals = await db
+      .select()
+      .from(weeklyGoal)
+      .where(and(eq(weeklyGoal.userId, userId), eq(weeklyGoal.active, true)));
+    expect(activeGoals).toHaveLength(1);
+    expect(activeGoals[0]?.id).toBe(second.id);
+
+    const [firstRow] = await db
+      .select()
+      .from(weeklyGoal)
+      .where(eq(weeklyGoal.id, first.id));
+    expect(firstRow?.active).toBe(false);
   });
 });
