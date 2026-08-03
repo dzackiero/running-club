@@ -1,0 +1,32 @@
+{
+  "name": "@running-club/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push"
+  },
+  "dependencies": {
+    "@running-club/shared": "workspace:*",
+    "better-auth": "1.6.25",
+    "@better-auth/oauth-provider": "1.6.25",
+    "drizzle-orm": "0.39.3",
+    "hono": "4.12.34",
+    "@hono/node-server": "1.19.17",
+    "postgres": "3.4.9",
+    "zod": "3.25.76",
+    "@modelcontextprotocol/sdk": "1.30.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "drizzle-kit": "0.30.6",
+    "tsx": "4.23.5",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}
