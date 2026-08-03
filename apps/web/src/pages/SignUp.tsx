@@ -1,9 +1,13 @@
 import { type FormEvent, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { authClient } from "../lib/auth-client";
+import { shouldDeferToOAuthContinue } from "../lib/oauth-continue";
 
 export function SignUp() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get("returnTo");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,7 +19,7 @@ export function SignUp() {
     setError(null);
     setLoading(true);
 
-    const { error: signUpError } = await authClient.signUp.email({
+    const { data, error: signUpError } = await authClient.signUp.email({
       name,
       email,
       password,
@@ -28,7 +32,12 @@ export function SignUp() {
       return;
     }
 
-    navigate("/");
+    // Let oauthProviderClient / redirect plugin complete window.location to consent.
+    if (shouldDeferToOAuthContinue(data, location.search)) {
+      return;
+    }
+
+    navigate(returnTo || "/");
   }
 
   return (
@@ -72,7 +81,8 @@ export function SignUp() {
         </button>
       </form>
       <p className="muted">
-        Already have an account? <Link to="/sign-in">Sign in</Link>
+        Already have an account?{" "}
+        <Link to={`/sign-in${location.search}`}>Sign in</Link>
       </p>
     </section>
   );
