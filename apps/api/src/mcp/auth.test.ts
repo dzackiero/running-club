@@ -1,6 +1,7 @@
 import { exportJWK, generateKeyPair, type JWK, SignJWT } from "jose";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { app } from "../app";
+import { auth } from "../auth";
 import { AUTH_ISSUER, MCP_RESOURCE, verifyMcpAccessToken } from "../mcp/auth";
 
 describe("MCP OAuth metadata", () => {
@@ -39,6 +40,12 @@ describe("MCP OAuth metadata", () => {
     expect(body.issuer).toBe(AUTH_ISSUER);
     expect(body.authorization_endpoint).toContain("/oauth2/authorize");
   });
+
+  it("aliases /jwks to the Better Auth JWKS endpoint", async () => {
+    const res = await app.request("/jwks");
+    // Without DB keys this may 500 in unit env; path must not 404
+    expect(res.status).not.toBe(404);
+  });
 });
 
 describe("verifyMcpAccessToken", () => {
@@ -61,17 +68,14 @@ describe("verifyMcpAccessToken", () => {
 
 /**
  * Limitation: does not run the full Better Auth OAuth code/token flow.
- * Crafts a locally signed JWT and stubs JWKS so issuer/audience checks
- * in verifyMcpAccessToken are exercised independently of DCR/consent.
- *
- * One keypair + one JWKS stub for the suite — jose's remote JWKS client
- * caches by URL, so rotating keys across tests would false-fail.
+ * Crafts a locally signed JWT and stubs in-process JWKS so issuer/audience
+ * checks in verifyMcpAccessToken are exercised independently of DCR/consent.
  */
 describe("verifyMcpAccessToken issuer/audience", () => {
   const kid = "task7-test-key";
   let privateKey: CryptoKey;
   let publicJwk: JWK;
-  let fetchMock: ReturnType<typeof vi.fn>;
+  let handlerSpy: ReturnType<typeof vi.spyOn>;
 
   beforeAll(async () => {
     const pair = await generateKeyPair("RS256");
@@ -81,21 +85,19 @@ describe("verifyMcpAccessToken issuer/audience", () => {
     publicJwk.alg = "RS256";
     publicJwk.use = "sig";
 
-    fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input);
+    handlerSpy = vi.spyOn(auth, "handler").mockImplementation(async (req) => {
+      const url = String(req instanceof Request ? req.url : req);
       if (url.includes("/jwks")) {
         return new Response(JSON.stringify({ keys: [publicJwk] }), {
           headers: { "Content-Type": "application/json" },
         });
       }
-      throw new Error(`Unexpected fetch in test: ${url}`);
+      throw new Error(`Unexpected auth.handler in test: ${url}`);
     });
-    vi.stubGlobal("fetch", fetchMock);
   });
 
   afterAll(() => {
-    vi.unstubAllGlobals();
-    vi.restoreAllMocks();
+    handlerSpy.mockRestore();
   });
 
   async function signAccessToken(claims: {

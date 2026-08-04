@@ -6,14 +6,24 @@ import { db } from "../db/client";
 import * as schema from "../db/schema";
 import { env } from "../env";
 
+/** OAuth/OIDC issuer — must match access-token `iss` and discovery metadata. */
+const authIssuer = `${env.BETTER_AUTH_URL}/api/auth`;
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "pg", schema }),
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
   trustedOrigins: [env.WEB_ORIGIN],
+  // `/token` conflicts with OAuth `/oauth2/token` when using the JWT plugin as AS
+  disabledPaths: ["/token"],
   emailAndPassword: { enabled: true },
   plugins: [
-    jwt(),
+    jwt({
+      disableSettingJwtHeader: true,
+      jwt: {
+        issuer: authIssuer,
+      },
+    }),
     oauthProvider({
       loginPage: `${env.WEB_ORIGIN}/sign-in`,
       consentPage: `${env.WEB_ORIGIN}/consent`,

@@ -53,6 +53,12 @@ app.use(
 
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
+// ChatGPT / some MCP clients resolve JWKS as `{origin}/jwks` instead of jwks_uri
+app.get("/jwks", (c) => {
+  const url = new URL("/api/auth/jwks", env.BETTER_AUTH_URL);
+  return auth.handler(new Request(url, c.req.raw));
+});
+
 const authServerMetadata = oauthProviderAuthServerMetadata(auth);
 const openIdConfigMetadata = oauthProviderOpenIdConfigMetadata(auth);
 
