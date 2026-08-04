@@ -155,3 +155,11 @@ VITE_API_URL=https://api.yourdomain.com
 ```
 
 Root helpers used by the Railpack configs: `pnpm run build:api`, `pnpm run start:api`, `pnpm run build:web`.
+
+If deploy fails with **JavaScript heap out of memory**, add on the Dokploy app:
+
+```bash
+NODE_OPTIONS=--max-old-space-size=4096
+```
+
+Ensure the server has enough RAM (4 GB+ recommended for Railpack monorepo builds). Railpack configs install only the workspace package needed per app (`api...` / `web...`).

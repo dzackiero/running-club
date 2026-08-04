@@ -5,11 +5,21 @@
     "node": "22"
   },
   "steps": {
+    "install": {
+      "commands": [
+        "pnpm install --filter @running-club/api... --frozen-lockfile"
+      ]
+    },
     "build": {
-      "commands": ["pnpm run build:api"]
+      "commands": [
+        "pnpm --filter @running-club/api build"
+      ]
     }
   },
   "deploy": {
-    "startCommand": "pnpm run start:api"
+    "startCommand": "node apps/api/dist/index.js",
+    "variables": {
+      "NODE_OPTIONS": "--max-old-space-size=512"
+    }
   }
 }
