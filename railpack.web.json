@@ -16,10 +16,11 @@
       ],
       "commands": [
         "pnpm install --frozen-lockfile",
-        "pnpm run build:web",
-        "pnpm prune -r --prod"
+        "pnpm run build:web"
       ],
-      "deployOutputs": ["apps/web/dist"]
+      "deployOutputs": [
+        { "include": ["apps/web/dist"] }
+      ]
     }
   },
   "deploy": {

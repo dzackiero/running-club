@@ -16,10 +16,11 @@
       ],
       "commands": [
         "pnpm install --frozen-lockfile",
-        "pnpm run build:api",
-        "pnpm prune -r --prod"
+        "pnpm run build:api"
       ],
-      "deployOutputs": ["node_modules", "apps/api/dist"]
+      "deployOutputs": [
+        { "include": ["."] }
+      ]
     }
   },
   "deploy": {
