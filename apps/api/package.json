@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json --noEmit && tsup",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
@@ -26,6 +26,7 @@
     "@types/node": "22.20.1",
     "drizzle-kit": "0.31.10",
     "jose": "6.2.7",
+    "tsup": "^8.5.1",
     "tsx": "4.23.5",
     "typescript": "5.9.3",
     "vitest": "3.2.7"
