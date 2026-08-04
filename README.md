@@ -89,6 +89,8 @@ The web app’s **Connect** page (`/connect`) shows the same URL and steps.
 | `pnpm dev` | Run API + web in parallel |
 | `pnpm test` | Run tests in all packages |
 | `pnpm build` | Build all packages |
+| `pnpm build:api` / `pnpm start:api` | Build / start API (Dokploy Railpack) |
+| `pnpm build:web` | Build web SPA (Dokploy Railpack) |
 | `pnpm --filter @running-club/api db:push` | Push Drizzle schema to Postgres |
 
 ## v1 non-goals
