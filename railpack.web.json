@@ -6,14 +6,20 @@
   },
   "steps": {
     "install": {
-      "commands": [
-        "pnpm install --filter @running-club/web... --frozen-lockfile"
-      ]
+      "commands": ["true"],
+      "deployOutputs": []
     },
     "build": {
+      "inputs": [
+        { "step": "packages:mise" },
+        { "local": true, "include": ["."] }
+      ],
       "commands": [
-        "pnpm --filter @running-club/web build"
-      ]
+        "pnpm install --frozen-lockfile",
+        "pnpm run build:web",
+        "pnpm prune -r --prod"
+      ],
+      "deployOutputs": ["apps/web/dist"]
     }
   },
   "deploy": {

@@ -6,14 +6,20 @@
   },
   "steps": {
     "install": {
-      "commands": [
-        "pnpm install --filter @running-club/api... --frozen-lockfile"
-      ]
+      "commands": ["true"],
+      "deployOutputs": []
     },
     "build": {
+      "inputs": [
+        { "step": "packages:mise" },
+        { "local": true, "include": ["."] }
+      ],
       "commands": [
-        "pnpm --filter @running-club/api build"
-      ]
+        "pnpm install --frozen-lockfile",
+        "pnpm run build:api",
+        "pnpm prune -r --prod"
+      ],
+      "deployOutputs": ["node_modules", "apps/api/dist"]
     }
   },
   "deploy": {
