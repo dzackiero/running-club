@@ -35,6 +35,9 @@ const envSchema = z.object({
   WEB_ORIGIN: z.string().url(),
   API_PUBLIC_URL: z.string().url(),
   PORT: z.coerce.number().default(8787),
+  LOG_LEVEL: z
+    .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
+    .default("info"),
 });
 
 export const env = envSchema.parse(process.env);

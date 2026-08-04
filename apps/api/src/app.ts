@@ -12,6 +12,7 @@ import {
 } from "./mcp/auth";
 import { handleMcpRequest } from "./mcp/server";
 import { requireUser } from "./middleware/require-user";
+import { requestLogger } from "./middleware/request-logger";
 import { sessionMiddleware } from "./middleware/session";
 import { goalsRoutes } from "./routes/goals";
 import { insightsRoutes } from "./routes/insights";
@@ -21,10 +22,13 @@ export type AppEnv = {
   Variables: {
     user: typeof auth.$Infer.Session.user | null;
     session: typeof auth.$Infer.Session.session | null;
+    requestId: string;
   };
 };
 
 export const app = new Hono<AppEnv>();
+
+app.use("*", requestLogger);
 
 app.use(
   "*",
