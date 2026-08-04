@@ -9,6 +9,30 @@ export function formatDuration(seconds: number): string {
   return `${m}m`;
 }
 
+/** Clock-style duration: `32:18` or `1:34:05`. */
+export function formatDurationClock(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  const ss = s.toString().padStart(2, "0");
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, "0")}:${ss}`;
+  }
+  return `${m}:${ss}`;
+}
+
+export function formatDateParts(iso: string): { date: string; weekday: string } {
+  const d = new Date(iso);
+  return {
+    date: d.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }),
+    weekday: d.toLocaleDateString(undefined, { weekday: "short" }),
+  };
+}
+
 export function formatPace(secPerKm: number | null): string {
   if (secPerKm == null) return "—";
   const m = Math.floor(secPerKm / 60);

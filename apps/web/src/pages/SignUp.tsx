@@ -1,7 +1,11 @@
 import { type FormEvent, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { authClient } from "../lib/auth-client";
-import { shouldDeferToOAuthContinue } from "../lib/oauth-continue";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { authClient } from "@/lib/auth-client";
+import { shouldDeferToOAuthContinue } from "@/lib/oauth-continue";
 
 export function SignUp() {
   const navigate = useNavigate();
@@ -32,7 +36,6 @@ export function SignUp() {
       return;
     }
 
-    // Let oauthProviderClient / redirect plugin complete window.location to consent.
     if (shouldDeferToOAuthContinue(data, location.search)) {
       return;
     }
@@ -41,32 +44,41 @@ export function SignUp() {
   }
 
   return (
-    <section className="panel">
-      <h1>Sign up</h1>
-      <form onSubmit={onSubmit} className="form">
-        <label>
-          Name
-          <input
+    <section className="mx-auto w-full max-w-sm space-y-6">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Sign up</h1>
+        <p className="text-sm text-muted-foreground">
+          Create an account to store runs and weekly goals.
+        </p>
+      </div>
+
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="name">Name</Label>
+          <Input
+            id="name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
             autoComplete="name"
           />
-        </label>
-        <label>
-          Email
-          <input
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
           />
-        </label>
-        <label>
-          Password
-          <input
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -74,15 +86,27 @@ export function SignUp() {
             minLength={8}
             autoComplete="new-password"
           />
-        </label>
-        {error ? <p className="error">{error}</p> : null}
-        <button type="submit" disabled={loading}>
+        </div>
+
+        {error ? (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        <Button type="submit" className="w-full" disabled={loading} size="lg">
           {loading ? "Creating account…" : "Create account"}
-        </button>
+        </Button>
       </form>
-      <p className="muted">
+
+      <p className="text-sm text-muted-foreground">
         Already have an account?{" "}
-        <Link to={`/sign-in${location.search}`}>Sign in</Link>
+        <Link
+          to={`/sign-in${location.search}`}
+          className="font-medium text-primary underline-offset-4 hover:underline"
+        >
+          Sign in
+        </Link>
       </p>
     </section>
   );

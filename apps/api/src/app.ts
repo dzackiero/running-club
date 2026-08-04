@@ -87,6 +87,7 @@ app.get("/api/me", requireUser, (c) =>
   c.json({ user: c.get("user"), session: c.get("session") }),
 );
 
+// Routes
 app.use("/runs", requireUser);
 app.use("/runs/*", requireUser);
 app.route("/runs", runsRoutes);

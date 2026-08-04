@@ -5,6 +5,9 @@
     "dev": "pnpm -r --parallel dev",
     "test": "pnpm -r test",
     "build": "pnpm -r build",
+    "build:api": "pnpm --filter @running-club/api build",
+    "build:web": "pnpm --filter @running-club/web build",
+    "start:api": "pnpm --filter @running-club/api start",
     "lint": "pnpm -r lint"
   },
   "engines": {

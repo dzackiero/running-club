@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "provider": "node",
+  "packages": {
+    "node": "22"
+  },
+  "steps": {
+    "build": {
+      "commands": ["pnpm run build:web"]
+    }
+  },
+  "deploy": {
+    "startCommand": "npx --yes serve -s apps/web/dist -l tcp://0.0.0.0:${PORT:-80}"
+  }
+}

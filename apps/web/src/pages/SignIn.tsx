@@ -1,7 +1,11 @@
 import { type FormEvent, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { authClient } from "../lib/auth-client";
-import { shouldDeferToOAuthContinue } from "../lib/oauth-continue";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { authClient } from "@/lib/auth-client";
+import { shouldDeferToOAuthContinue } from "@/lib/oauth-continue";
 
 export function SignIn() {
   const navigate = useNavigate();
@@ -30,7 +34,6 @@ export function SignIn() {
       return;
     }
 
-    // Let oauthProviderClient / redirect plugin complete window.location to consent.
     if (shouldDeferToOAuthContinue(data, location.search)) {
       return;
     }
@@ -39,36 +42,57 @@ export function SignIn() {
   }
 
   return (
-    <section className="panel">
-      <h1>Sign in</h1>
-      <form onSubmit={onSubmit} className="form">
-        <label>
-          Email
-          <input
+    <section className="mx-auto w-full max-w-sm space-y-6">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
+        <p className="text-sm text-muted-foreground">
+          Continue to your training log.
+        </p>
+      </div>
+
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
           />
-        </label>
-        <label>
-          Password
-          <input
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
           />
-        </label>
-        {error ? <p className="error">{error}</p> : null}
-        <button type="submit" disabled={loading}>
+        </div>
+
+        {error ? (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        <Button type="submit" className="w-full" disabled={loading} size="lg">
           {loading ? "Signing in…" : "Sign in"}
-        </button>
+        </Button>
       </form>
-      <p className="muted">
-        No account? <Link to={`/sign-up${location.search}`}>Sign up</Link>
+
+      <p className="text-sm text-muted-foreground">
+        No account?{" "}
+        <Link
+          to={`/sign-up${location.search}`}
+          className="font-medium text-primary underline-offset-4 hover:underline"
+        >
+          Sign up
+        </Link>
       </p>
     </section>
   );

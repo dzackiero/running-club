@@ -1,11 +1,11 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { authClient } from "../lib/auth-client";
+import { authClient } from "@/lib/auth-client";
 
 export function RequireAuth() {
   const { data: session, isPending } = authClient.useSession();
 
   if (isPending) {
-    return <p className="muted">Loading…</p>;
+    return <p className="text-sm text-muted-foreground">Loading…</p>;
   }
 
   if (!session?.user) {

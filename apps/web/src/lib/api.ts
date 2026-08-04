@@ -1,12 +1,13 @@
 import type {
   CreateRunInput,
   RunRecord,
+  UpdateRunInput,
   UpsertWeeklyGoalInput,
   WeekProgress,
   WeeklyGoalRecord,
 } from "@running-club/shared";
 
-const baseUrl = import.meta.env.VITE_API_URL;
+const baseUrl = import.meta.env.VITE_API_URL ?? "http://localhost:8787";
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${baseUrl}${path}`, {
@@ -55,5 +56,18 @@ export function createRun(body: CreateRunInput) {
   return apiFetch<RunRecord>("/runs", {
     method: "POST",
     body: JSON.stringify(body),
+  });
+}
+
+export function updateRun(id: string, body: UpdateRunInput) {
+  return apiFetch<RunRecord>(`/runs/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export function deleteRun(id: string) {
+  return apiFetch<void>(`/runs/${id}`, {
+    method: "DELETE",
   });
 }

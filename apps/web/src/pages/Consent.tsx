@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { authClient } from "../lib/auth-client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { authClient } from "@/lib/auth-client";
 
 type PublicClient = {
   client_id: string;
@@ -65,27 +68,37 @@ export function Consent() {
   }
 
   if (sessionPending) {
-    return <p className="muted">Loading…</p>;
+    return <p className="text-sm text-muted-foreground">Loading…</p>;
   }
 
   if (!session?.user) {
     const returnTo = `/consent?${searchParams.toString()}`;
     return (
-      <section className="panel">
-        <h1>Authorize application</h1>
-        <p className="muted">Sign in to continue.</p>
-        <Link to={`/sign-in?returnTo=${encodeURIComponent(returnTo)}`}>
-          Sign in
-        </Link>
+      <section className="mx-auto w-full max-w-sm space-y-4">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Authorize application
+        </h1>
+        <p className="text-sm text-muted-foreground">Sign in to continue.</p>
+        <Button asChild className="w-full" size="lg">
+          <Link to={`/sign-in?returnTo=${encodeURIComponent(returnTo)}`}>
+            Sign in
+          </Link>
+        </Button>
       </section>
     );
   }
 
   if (!clientId) {
     return (
-      <section className="panel">
-        <h1>Authorize application</h1>
-        <p className="error">Missing client_id in the authorization request.</p>
+      <section className="mx-auto w-full max-w-sm space-y-4">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Authorize application
+        </h1>
+        <Alert variant="destructive">
+          <AlertDescription>
+            Missing client_id in the authorization request.
+          </AlertDescription>
+        </Alert>
       </section>
     );
   }
@@ -94,34 +107,61 @@ export function Consent() {
   const appName = client?.client_name ?? clientId;
 
   return (
-    <section className="panel">
-      <h1>Authorize {appName}</h1>
-      {client?.logo_uri ? (
-        <img src={client.logo_uri} alt="" className="client-logo" />
-      ) : null}
-      <p>This application is requesting access to your Running Club account.</p>
+    <section className="mx-auto w-full max-w-sm space-y-6">
+      <div className="space-y-2">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Authorize {appName}
+        </h1>
+        {client?.logo_uri ? (
+          <img
+            src={client.logo_uri}
+            alt=""
+            className="mb-2 max-h-12 rounded-md"
+          />
+        ) : null}
+        <p className="text-sm text-muted-foreground">
+          This application is requesting access to your Running Club account.
+        </p>
+      </div>
+
+      <Separator />
+
       {scopes.length > 0 ? (
-        <ul className="scope-list">
+        <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
           {scopes.map((s) => (
             <li key={s}>{s}</li>
           ))}
         </ul>
       ) : (
-        <p className="muted">Default account access</p>
+        <p className="text-sm text-muted-foreground">Default account access</p>
       )}
-      {error ? <p className="error">{error}</p> : null}
-      <div className="actions">
-        <button type="button" disabled={loading} onClick={() => respond(true)}>
-          {loading ? "Authorizing…" : "Allow"}
-        </button>
-        <button
+
+      {error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Button
           type="button"
-          className="secondary"
+          className="flex-1"
+          size="lg"
+          disabled={loading}
+          onClick={() => respond(true)}
+        >
+          {loading ? "Authorizing…" : "Allow"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="flex-1"
+          size="lg"
           disabled={loading}
           onClick={() => respond(false)}
         >
           Deny
-        </button>
+        </Button>
       </div>
     </section>
   );

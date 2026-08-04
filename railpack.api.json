@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "provider": "node",
+  "packages": {
+    "node": "22"
+  },
+  "steps": {
+    "build": {
+      "commands": ["pnpm run build:api"]
+    }
+  },
+  "deploy": {
+    "startCommand": "pnpm run start:api"
+  }
+}

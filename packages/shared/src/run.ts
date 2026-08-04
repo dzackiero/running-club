@@ -1,6 +1,12 @@
 import { z } from "zod";
 
-export const activityTypes = ["run", "trail", "treadmill", "race"] as const;
+export const activityTypes = [
+  "run",
+  "walk",
+  "trail",
+  "treadmill",
+  "race",
+] as const;
 export type ActivityType = (typeof activityTypes)[number];
 
 export const createRunSchema = z.object({

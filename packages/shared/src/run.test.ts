@@ -58,4 +58,9 @@ describe("listRunsQuerySchema", () => {
       listRunsQuerySchema.parse({ activityType: "swim" }),
     ).toThrow();
   });
+
+  it("accepts walk activityType", () => {
+    const parsed = listRunsQuerySchema.parse({ activityType: "walk" });
+    expect(parsed.activityType).toBe("walk");
+  });
 });

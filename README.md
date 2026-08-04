@@ -16,14 +16,11 @@ Personal running log with a REST API and **remote MCP server** for ChatGPT. Stor
 
 ### 1. Environment
 
-Copy env templates and adjust values:
+One file at the repo root — API and Vite both read it:
 
 ```bash
 cp .env.example .env
-cp apps/web/.env.example apps/web/.env
 ```
-
-**Root `.env`** (API — loaded by `apps/api`):
 
 | Variable | Purpose |
 |---|---|
@@ -32,11 +29,6 @@ cp apps/web/.env.example apps/web/.env
 | `BETTER_AUTH_URL` | Public API base URL (e.g. `http://localhost:8787`) |
 | `WEB_ORIGIN` | Vite dev server origin (e.g. `http://localhost:5173`) |
 | `API_PUBLIC_URL` | Public URL for OAuth/MCP metadata (usually same as `BETTER_AUTH_URL`) |
-
-**`apps/web/.env`** (Vite):
-
-| Variable | Purpose |
-|---|---|
 | `VITE_API_URL` | API base URL the browser calls (e.g. `http://localhost:8787`) |
 
 ### 2. Install and database
@@ -116,3 +108,48 @@ apps/api/          Hono REST + Better Auth + MCP
 apps/web/          Vite React UI
 packages/shared/   Shared Zod schemas and types
 ```
+
+## Deploy on Dokploy (Railpack)
+
+Deploy **Postgres**, **API**, and **web** as three services from this repo. Use build type **Railpack**, build path `/`.
+
+### API
+
+| Setting | Value |
+|---|---|
+| `RAILPACK_CONFIG_FILE` | `railpack.api.json` |
+| Domain container port | `8787` |
+| Watch paths (optional) | `apps/api/**`, `packages/shared/**` |
+
+Runtime env:
+
+```bash
+DATABASE_URL=postgres://...
+BETTER_AUTH_SECRET=<min 32 chars>
+BETTER_AUTH_URL=https://api.yourdomain.com
+API_PUBLIC_URL=https://api.yourdomain.com
+WEB_ORIGIN=https://app.yourdomain.com
+PORT=8787
+```
+
+After first deploy, push the schema once (Dokploy shell / one-off):
+
+```bash
+pnpm --filter @running-club/api db:push
+```
+
+### Web
+
+| Setting | Value |
+|---|---|
+| `RAILPACK_CONFIG_FILE` | `railpack.web.json` |
+| Domain container port | `80` |
+| Watch paths (optional) | `apps/web/**`, `packages/shared/**` |
+
+Build-time env (baked into the client; redeploy web if you change it):
+
+```bash
+VITE_API_URL=https://api.yourdomain.com
+```
+
+Root helpers used by the Railpack configs: `pnpm run build:api`, `pnpm run start:api`, `pnpm run build:web`.
