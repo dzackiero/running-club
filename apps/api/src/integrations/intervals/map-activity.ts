@@ -1,4 +1,6 @@
 import type { CreateRunInput } from "@running-club/shared";
+import { mapIntervalsLapsToSplits, type IntervalsLap } from "./map-splits";
+import { gapToPaceSecPerKm, normalizeIntensity } from "./metrics";
 
 export type IntervalsActivity = {
   id: string;
@@ -18,6 +20,14 @@ export type IntervalsActivity = {
   perceived_exertion?: number | null;
   race?: boolean | null;
   trainer?: boolean | null;
+  icu_training_load?: number | null;
+  icu_intensity?: number | null;
+  gap?: number | null;
+  icu_gap?: number | null;
+  icu_hr_zone_times?: number[] | null;
+  hr_zone_times?: number[] | null;
+  map?: { summary_polyline?: string | null } | null;
+  icu_intervals?: IntervalsLap[] | null;
 };
 
 export function mapIntervalsActivityToRun(
@@ -40,6 +50,15 @@ export function mapIntervalsActivityToRun(
   const notes = [activity.name?.trim(), activity.description?.trim()]
     .filter(Boolean)
     .join("\n\n");
+  const intensity = normalizeIntensity(activity.icu_intensity);
+  const trainingLoad = nonNegativeNumber(activity.icu_training_load);
+  const gapPaceSecPerKm = gapToPaceSecPerKm(activity.icu_gap ?? activity.gap);
+  const hrZoneSeconds = firstZoneTimes(
+    activity.icu_hr_zone_times,
+    activity.hr_zone_times,
+  );
+  const splits = mapIntervalsLapsToSplits(activity.icu_intervals ?? []);
+  const polyline = activity.map?.summary_polyline?.trim();
 
   return {
     startedAt,
@@ -63,6 +82,12 @@ export function mapIntervalsActivityToRun(
       : {}),
     ...(perceivedEffort != null ? { perceivedEffort } : {}),
     ...(notes ? { notes } : {}),
+    ...(intensity != null ? { intensity } : {}),
+    ...(trainingLoad != null ? { trainingLoad } : {}),
+    ...(gapPaceSecPerKm != null ? { gapPaceSecPerKm } : {}),
+    ...(hrZoneSeconds ? { hrZoneSeconds } : {}),
+    ...(splits.length > 0 ? { splits } : {}),
+    ...(polyline ? { polyline } : {}),
     source: "intervals",
     externalId: activity.id,
   };
@@ -107,6 +132,15 @@ function nonNegativeNumber(value: number | null | undefined): number | undefined
 function positiveInt(value: number | null | undefined): number | undefined {
   const n = positiveNumber(value);
   return n == null ? undefined : Math.round(n);
+}
+
+function firstZoneTimes(
+  ...candidates: Array<number[] | null | undefined>
+): number[] | undefined {
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate) && candidate.length > 0) return candidate;
+  }
+  return undefined;
 }
 
 function mapPerceivedEffort(value: number | null | undefined): number | undefined {

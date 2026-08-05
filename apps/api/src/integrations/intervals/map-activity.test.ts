@@ -61,4 +61,31 @@ describe("mapIntervalsActivityToRun", () => {
     expect(mapIntervalsActivityToRun({ ...baseRun, distance: 0 })).toBeNull();
     expect(mapIntervalsActivityToRun({ ...baseRun, moving_time: 0, elapsed_time: 0 })).toBeNull();
   });
+
+  it("maps load, intensity, gap, zones, laps, and polyline", () => {
+    const mapped = mapIntervalsActivityToRun({
+      ...baseRun,
+      icu_training_load: 72,
+      icu_intensity: 0.8,
+      gap: 3.333,
+      icu_hr_zone_times: [30, 600, 400],
+      map: { summary_polyline: "_p~iF~ps|U_ulLnnqC" },
+      icu_intervals: [
+        {
+          type: "LAP",
+          distance: 1000,
+          moving_time: 300,
+          average_heartrate: 149,
+        },
+      ],
+    });
+    expect(mapped?.trainingLoad).toBe(72);
+    expect(mapped?.intensity).toBe(80);
+    expect(mapped?.gapPaceSecPerKm).toBeCloseTo(300, 0);
+    expect(mapped?.hrZoneSeconds).toEqual([30, 600, 400]);
+    expect(mapped?.polyline).toBe("_p~iF~ps|U_ulLnnqC");
+    expect(mapped?.splits).toEqual([
+      { distanceMeters: 1000, durationSeconds: 300, avgHeartRate: 149 },
+    ]);
+  });
 });
