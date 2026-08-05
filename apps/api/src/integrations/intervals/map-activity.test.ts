@@ -69,6 +69,7 @@ describe("mapIntervalsActivityToRun", () => {
       icu_intensity: 0.8,
       gap: 3.333,
       icu_hr_zone_times: [30, 600, 400],
+      icu_hr_zones: [0, 141, 158, 175],
       map: { summary_polyline: "_p~iF~ps|U_ulLnnqC" },
       icu_intervals: [
         {
@@ -83,6 +84,7 @@ describe("mapIntervalsActivityToRun", () => {
     expect(mapped?.intensity).toBe(80);
     expect(mapped?.gapPaceSecPerKm).toBeCloseTo(300, 0);
     expect(mapped?.hrZoneSeconds).toEqual([30, 600, 400]);
+    expect(mapped?.hrZoneBpm).toEqual([0, 141, 158, 175]);
     expect(mapped?.polyline).toBe("_p~iF~ps|U_ulLnnqC");
     expect(mapped?.splits).toEqual([
       { distanceMeters: 1000, durationSeconds: 300, avgHeartRate: 149 },

@@ -26,6 +26,8 @@ export type IntervalsActivity = {
   icu_gap?: number | null;
   icu_hr_zone_times?: number[] | null;
   hr_zone_times?: number[] | null;
+  icu_hr_zones?: number[] | null;
+  hr_zones?: number[] | null;
   map?: { summary_polyline?: string | null } | null;
   icu_intervals?: IntervalsLap[] | null;
 };
@@ -57,6 +59,7 @@ export function mapIntervalsActivityToRun(
     activity.icu_hr_zone_times,
     activity.hr_zone_times,
   );
+  const hrZoneBpm = firstZoneTimes(activity.icu_hr_zones, activity.hr_zones);
   const splits = mapIntervalsLapsToSplits(activity.icu_intervals ?? []);
   const polyline = activity.map?.summary_polyline?.trim();
 
@@ -86,6 +89,7 @@ export function mapIntervalsActivityToRun(
     ...(trainingLoad != null ? { trainingLoad } : {}),
     ...(gapPaceSecPerKm != null ? { gapPaceSecPerKm } : {}),
     ...(hrZoneSeconds ? { hrZoneSeconds } : {}),
+    ...(hrZoneBpm ? { hrZoneBpm } : {}),
     ...(splits.length > 0 ? { splits } : {}),
     ...(polyline ? { polyline } : {}),
     source: "intervals",

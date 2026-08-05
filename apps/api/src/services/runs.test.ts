@@ -59,6 +59,7 @@ describe("runs service", () => {
       intensity: 80,
       gapPaceSecPerKm: 290,
       hrZoneSeconds: [0, 600, 900],
+      hrZoneBpm: [0, 141, 158, 175],
       streams: {
         t: [0, 60],
         pace: [300, 295],
@@ -70,6 +71,7 @@ describe("runs service", () => {
 
     const fetched = await getRun(userId, created.id);
     expect(fetched?.trainingLoad).toBe(70);
+    expect(fetched?.hrZoneBpm).toEqual([0, 141, 158, 175]);
     expect(fetched?.streams?.t).toEqual([0, 60]);
     expect(fetched?.splits?.[0]?.avgHeartRate).toBe(144);
 

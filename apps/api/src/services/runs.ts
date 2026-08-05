@@ -35,6 +35,7 @@ function toRunRecord(row: RunRow): RunRecord {
     intensity: row.intensity,
     gapPaceSecPerKm: row.gapPaceSecPerKm,
     hrZoneSeconds: (row.hrZoneSeconds as RunRecord["hrZoneSeconds"]) ?? null,
+    hrZoneBpm: (row.hrZoneBpm as RunRecord["hrZoneBpm"]) ?? null,
     streams: (row.streams as RunRecord["streams"]) ?? null,
     source: row.source,
     externalId: row.externalId,
@@ -73,6 +74,7 @@ export async function createRun(
       intensity: input.intensity,
       gapPaceSecPerKm: input.gapPaceSecPerKm,
       hrZoneSeconds: input.hrZoneSeconds,
+      hrZoneBpm: input.hrZoneBpm,
       streams: input.streams,
       source: input.source ?? "manual",
       externalId: input.externalId,
@@ -189,6 +191,9 @@ export async function updateRun(
   if (input.hrZoneSeconds !== undefined) {
     updates.hrZoneSeconds = input.hrZoneSeconds;
   }
+  if (input.hrZoneBpm !== undefined) {
+    updates.hrZoneBpm = input.hrZoneBpm;
+  }
   if (input.streams !== undefined) {
     updates.streams = input.streams;
   }
@@ -213,7 +218,12 @@ export async function findRunByExternalId(
   externalId: string,
 ): Promise<Pick<
   RunRecord,
-  "id" | "distanceMeters" | "durationSeconds" | "avgHeartRate" | "streams"
+  | "id"
+  | "distanceMeters"
+  | "durationSeconds"
+  | "avgHeartRate"
+  | "streams"
+  | "hrZoneBpm"
 > | null> {
   const [row] = await db
     .select({
@@ -222,6 +232,7 @@ export async function findRunByExternalId(
       durationSeconds: run.durationSeconds,
       avgHeartRate: run.avgHeartRate,
       streams: run.streams,
+      hrZoneBpm: run.hrZoneBpm,
     })
     .from(run)
     .where(and(eq(run.userId, userId), eq(run.externalId, externalId)))
@@ -233,6 +244,7 @@ export async function findRunByExternalId(
     durationSeconds: row.durationSeconds,
     avgHeartRate: row.avgHeartRate,
     streams: (row.streams as RunRecord["streams"]) ?? null,
+    hrZoneBpm: (row.hrZoneBpm as RunRecord["hrZoneBpm"]) ?? null,
   };
 }
 

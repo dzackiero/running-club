@@ -28,6 +28,7 @@ export function shouldEnrichIntervalsRun(
     distanceMeters: number;
     durationSeconds: number;
     avgHeartRate: number | null;
+    hrZoneBpm?: number[] | null;
   } | null,
   incoming: {
     distanceMeters: number;
@@ -37,6 +38,22 @@ export function shouldEnrichIntervalsRun(
 ): boolean {
   if (!existing) return true;
   if (existing.streams == null) return true;
+  if (existing.hrZoneBpm == null) return true;
+  return summaryChanged(existing, incoming);
+}
+
+function summaryChanged(
+  existing: {
+    distanceMeters: number;
+    durationSeconds: number;
+    avgHeartRate: number | null;
+  },
+  incoming: {
+    distanceMeters: number;
+    durationSeconds: number;
+    avgHeartRate?: number;
+  },
+): boolean {
   return (
     Math.round(existing.distanceMeters) !== Math.round(incoming.distanceMeters) ||
     existing.durationSeconds !== incoming.durationSeconds ||
@@ -86,7 +103,10 @@ export async function importFromIntervals(
       }
     }
 
-    if (enrich && client.getStreams) {
+    const refetchStreams =
+      !existing || existing.streams == null || summaryChanged(existing, mapped);
+
+    if (enrich && refetchStreams && client.getStreams) {
       try {
         const rawStreams = await client.getStreams(mapped.externalId);
         const streams = downsampleIntervalsStreams(rawStreams);
@@ -122,6 +142,7 @@ function summaryOnly(input: CreateRunInput): CreateRunInput {
     intensity: _intensity,
     gapPaceSecPerKm: _gapPaceSecPerKm,
     hrZoneSeconds: _hrZoneSeconds,
+    hrZoneBpm: _hrZoneBpm,
     splits: _splits,
     polyline: _polyline,
     streams: _streams,

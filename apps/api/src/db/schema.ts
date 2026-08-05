@@ -315,6 +315,7 @@ export const run = pgTable(
     intensity: real("intensity"),
     gapPaceSecPerKm: real("gap_pace_sec_per_km"),
     hrZoneSeconds: jsonb("hr_zone_seconds"),
+    hrZoneBpm: jsonb("hr_zone_bpm"),
     streams: jsonb("streams"),
     source: text("source").notNull().default("manual"),
     externalId: text("external_id"),

@@ -5,6 +5,10 @@ import { toast } from "sonner";
 import { HrZoneBar } from "@/components/HrZoneBar";
 import { LogRunDialog } from "@/components/LogRunDialog";
 import { AppLoading } from "@/components/AppLoading";
+import {
+  RunDetailMetrics,
+  type MetricKind,
+} from "@/components/RunDetailMetrics";
 import { RunRouteScribble } from "@/components/RunRouteScribble";
 import { RunStreamsChart } from "@/components/RunStreamsChart";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -98,35 +102,92 @@ export function RunDetail() {
   }
 
   const { date, weekday } = formatDateParts(run.startedAt, { year: true });
-  const secondary = [
+  const secondary: Array<{
+    key: string;
+    kind: MetricKind;
+    label: string;
+    value: string;
+    unit?: string;
+  }> = [
     run.trainingLoad != null
-      ? { label: "Load", value: String(Math.round(run.trainingLoad)) }
+      ? {
+          key: "load",
+          kind: "load" as const,
+          label: "Load",
+          value: String(Math.round(run.trainingLoad)),
+        }
       : null,
     run.intensity != null
-      ? { label: "Intensity", value: `${Math.round(run.intensity)}%` }
+      ? {
+          key: "intensity",
+          kind: "intensity" as const,
+          label: "Intensity",
+          value: String(Math.round(run.intensity)),
+          unit: "%",
+        }
       : null,
     run.gapPaceSecPerKm != null
-      ? { label: "GAP", value: formatPace(run.gapPaceSecPerKm) }
+      ? {
+          key: "gap",
+          kind: "gap" as const,
+          label: "GAP",
+          value: formatPace(run.gapPaceSecPerKm),
+        }
       : null,
     run.avgHeartRate != null
-      ? { label: "Avg HR", value: `${run.avgHeartRate} bpm` }
+      ? {
+          key: "avgHr",
+          kind: "avgHr" as const,
+          label: "Avg HR",
+          value: String(run.avgHeartRate),
+          unit: "bpm",
+        }
       : null,
     run.maxHeartRate != null
-      ? { label: "Max HR", value: `${run.maxHeartRate} bpm` }
+      ? {
+          key: "maxHr",
+          kind: "maxHr" as const,
+          label: "Max HR",
+          value: String(run.maxHeartRate),
+          unit: "bpm",
+        }
       : null,
     run.elevationGainMeters != null
-      ? { label: "Elev", value: `${Math.round(run.elevationGainMeters)} m` }
+      ? {
+          key: "elev",
+          kind: "elev" as const,
+          label: "Elev",
+          value: String(Math.round(run.elevationGainMeters)),
+          unit: "m",
+        }
       : null,
     run.calories != null
-      ? { label: "Calories", value: String(Math.round(run.calories)) }
+      ? {
+          key: "calories",
+          kind: "calories" as const,
+          label: "Calories",
+          value: String(Math.round(run.calories)),
+        }
       : null,
     run.avgCadence != null
-      ? { label: "Cadence", value: `${Math.round(run.avgCadence)} spm` }
+      ? {
+          key: "cadence",
+          kind: "cadence" as const,
+          label: "Cadence",
+          value: String(Math.round(run.avgCadence)),
+          unit: "spm",
+        }
       : null,
     run.perceivedEffort != null
-      ? { label: "Effort", value: `${run.perceivedEffort}/10` }
+      ? {
+          key: "effort",
+          kind: "effort" as const,
+          label: "Effort",
+          value: String(run.perceivedEffort),
+          unit: "/10",
+        }
       : null,
-  ].filter((item): item is { label: string; value: string } => item != null);
+  ].filter((item) => item != null);
 
   return (
     <section className="space-y-6">
@@ -206,19 +267,10 @@ export function RunDetail() {
         </div>
       </dl>
 
-      {secondary.length > 0 ? (
-        <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-          {secondary.map((item) => (
-            <div key={item.label} className="flex gap-2">
-              <dt className="text-muted-foreground">{item.label}</dt>
-              <dd className="tabular-nums text-foreground">{item.value}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
+      <RunDetailMetrics metrics={secondary} />
 
       {run.hrZoneSeconds && run.hrZoneSeconds.some((value) => value > 0) ? (
-        <HrZoneBar seconds={run.hrZoneSeconds} />
+        <HrZoneBar seconds={run.hrZoneSeconds} bpm={run.hrZoneBpm} />
       ) : null}
 
       {run.polyline ? <RunRouteScribble polyline={run.polyline} /> : null}

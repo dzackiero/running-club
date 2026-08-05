@@ -65,6 +65,7 @@ describe("createRunSchema", () => {
       intensity: 78,
       gapPaceSecPerKm: 295,
       hrZoneSeconds: [60, 900, 600, 240, 0],
+      hrZoneBpm: [0, 123, 142, 160, 178, 197],
       streams: {
         t: [0, 60, 120],
         pace: [300, 295, 290],
@@ -75,6 +76,7 @@ describe("createRunSchema", () => {
       ],
     });
     expect(parsed.trainingLoad).toBe(72);
+    expect(parsed.hrZoneBpm).toEqual([0, 123, 142, 160, 178, 197]);
     expect(parsed.streams?.hr).toEqual([140, 145, null]);
     expect(parsed.splits?.[0]?.avgHeartRate).toBe(148);
   });

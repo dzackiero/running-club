@@ -77,7 +77,7 @@ function createRunningClubMcpServer(userId: string): McpServer {
     "get_run",
     {
       description:
-        "Get one run by id, including training load, intensity, GAP, HR zones, splits, polyline, and downsampled pace/HR streams when present.",
+        "Get one run by id, including training load, intensity, GAP, HR zone times and bpm bounds, splits, polyline, and downsampled pace/HR streams when present.",
       inputSchema: runIdToolSchema.shape,
     },
     (args) => handleGetRun(userId, args),

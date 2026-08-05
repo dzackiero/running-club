@@ -86,6 +86,7 @@ describe("importFromIntervals", () => {
         icu_intensity: 75,
         gap: 3.2,
         icu_hr_zone_times: [100, 800, 600],
+        icu_hr_zones: [0, 141, 158, 175, 192],
         map: { summary_polyline: "abc" },
         icu_intervals: [
           {
@@ -107,6 +108,7 @@ describe("importFromIntervals", () => {
       (row) => row.externalId === "i-enrich-1",
     );
     expect(run?.trainingLoad).toBe(65);
+    expect(run?.hrZoneBpm).toEqual([0, 141, 158, 175, 192]);
     expect(run?.polyline).toBe("abc");
     const full = await getRun(userId, run!.id);
     expect(full?.streams?.t.length).toBeGreaterThan(0);
@@ -128,6 +130,7 @@ describe("importFromIntervals", () => {
       getActivity: async () => ({
         ...listItem,
         icu_training_load: 40,
+        icu_hr_zones: [0, 141, 158, 175, 192],
         icu_intervals: [
           {
             type: "LAP",
@@ -149,6 +152,59 @@ describe("importFromIntervals", () => {
     await importFromIntervals(userId, client);
     await importFromIntervals(userId, client);
     expect(streamCalls).toBe(1);
+  });
+
+  it("backfills hr zone bounds without refetching streams", async () => {
+    let streamCalls = 0;
+    let detailCalls = 0;
+    const listItem = {
+      id: "i-enrich-3",
+      type: "Run",
+      name: "Needs bounds",
+      start_date: "2026-07-06T00:00:00Z",
+      distance: 3500,
+      moving_time: 1050,
+      average_heartrate: 145,
+    };
+    await importFromIntervals(userId, {
+      listActivities: async () => [listItem],
+      getActivity: async () => ({
+        ...listItem,
+        icu_hr_zone_times: [60, 400, 590],
+      }),
+      getStreams: async () => {
+        streamCalls += 1;
+        return [
+          { type: "time", data: [0, 30] },
+          { type: "velocity_smooth", data: [3.3, 3.3] },
+          { type: "heartrate", data: [140, 146] },
+        ];
+      },
+    });
+
+    const second = await importFromIntervals(userId, {
+      listActivities: async () => [listItem],
+      getActivity: async () => {
+        detailCalls += 1;
+        return {
+          ...listItem,
+          icu_hr_zone_times: [60, 400, 590],
+          icu_hr_zones: [0, 141, 158, 175],
+        };
+      },
+      getStreams: async () => {
+        streamCalls += 1;
+        return [];
+      },
+    });
+
+    expect(second).toEqual({ imported: 0, updated: 1, skipped: 0 });
+    expect(streamCalls).toBe(1);
+    expect(detailCalls).toBe(1);
+    const run = (await listRuns(userId, {})).find(
+      (row) => row.externalId === "i-enrich-3",
+    );
+    expect(run?.hrZoneBpm).toEqual([0, 141, 158, 175]);
   });
 
   it("rethrows 429 so sync is not marked complete", async () => {

@@ -48,6 +48,7 @@ export const createRunSchema = z.object({
   intensity: z.number().nonnegative().optional(),
   gapPaceSecPerKm: z.number().positive().optional(),
   hrZoneSeconds: z.array(z.number().nonnegative()).max(12).optional(),
+  hrZoneBpm: z.array(z.number().nonnegative()).max(16).optional(),
   streams: runStreamsSchema.optional(),
   source: z
     .enum(["manual", "strava", "import", "intervals"])
@@ -92,6 +93,7 @@ export type RunRecord = {
   intensity: number | null;
   gapPaceSecPerKm: number | null;
   hrZoneSeconds: number[] | null;
+  hrZoneBpm: number[] | null;
   streams: RunStreams | null;
   source: string;
   externalId: string | null;
