@@ -9,6 +9,27 @@ export const activityTypes = [
 ] as const;
 export type ActivityType = (typeof activityTypes)[number];
 
+export const runStreamsSchema = z
+  .object({
+    t: z.array(z.number()).max(250),
+    pace: z.array(z.number()).max(250),
+    hr: z.array(z.number().nullable()).max(250),
+  })
+  .refine(
+    (value) =>
+      value.t.length === value.pace.length &&
+      value.t.length === value.hr.length,
+    { message: "stream arrays must be the same length" },
+  );
+
+export type RunStreams = z.infer<typeof runStreamsSchema>;
+
+export const runSplitSchema = z.object({
+  distanceMeters: z.number().positive(),
+  durationSeconds: z.number().int().positive(),
+  avgHeartRate: z.number().int().positive().optional(),
+});
+
 export const createRunSchema = z.object({
   startedAt: z.string().datetime(),
   distanceMeters: z.number().positive(),
@@ -21,15 +42,13 @@ export const createRunSchema = z.object({
   avgCadence: z.number().positive().optional(),
   perceivedEffort: z.number().int().min(1).max(10).optional(),
   notes: z.string().max(2000).optional(),
-  splits: z
-    .array(
-      z.object({
-        distanceMeters: z.number().positive(),
-        durationSeconds: z.number().int().positive(),
-      }),
-    )
-    .optional(),
+  splits: z.array(runSplitSchema).optional(),
   polyline: z.string().optional(),
+  trainingLoad: z.number().nonnegative().optional(),
+  intensity: z.number().nonnegative().optional(),
+  gapPaceSecPerKm: z.number().positive().optional(),
+  hrZoneSeconds: z.array(z.number().nonnegative()).max(12).optional(),
+  streams: runStreamsSchema.optional(),
   source: z
     .enum(["manual", "strava", "import", "intervals"])
     .optional()
@@ -67,8 +86,13 @@ export type RunRecord = {
   avgCadence: number | null;
   perceivedEffort: number | null;
   notes: string | null;
-  splits: { distanceMeters: number; durationSeconds: number }[] | null;
+  splits: z.infer<typeof runSplitSchema>[] | null;
   polyline: string | null;
+  trainingLoad: number | null;
+  intensity: number | null;
+  gapPaceSecPerKm: number | null;
+  hrZoneSeconds: number[] | null;
+  streams: RunStreams | null;
   source: string;
   externalId: string | null;
   createdAt: string;
