@@ -92,7 +92,8 @@ export function IntervalsConnectCard() {
         <h2 className="text-base font-medium">Intervals.icu</h2>
         <p className="text-sm text-muted-foreground">
           Paste your API key from Intervals Settings → Developer. Cup Run
-          imports runs one way and checks again every 2 hours.
+          imports runs one way and again when the last sync is older than 2
+          hours.
         </p>
       </div>
       {connected ? (

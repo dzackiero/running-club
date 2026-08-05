@@ -3,6 +3,8 @@ import {
   deleteUserIntegration,
   getUserIntegrationStatus,
   getUserIntegrationSecret,
+  listIntervalsCredentials,
+  markIntegrationSynced,
   upsertUserIntegration,
 } from "./integrations";
 import { deleteTestUsers, ensureTestUsers } from "../test/users";
@@ -52,5 +54,38 @@ describe("user integrations", () => {
       hint: null,
       lastSyncedAt: null,
     });
+  });
+
+  it("lists Intervals credentials with lastSyncedAt for the poller", async () => {
+    await upsertUserIntegration(
+      userId,
+      "intervals",
+      "140kfhot88gm2zacwcck7ku0e",
+    );
+
+    const beforeSync = (await listIntervalsCredentials()).find(
+      (row) => row.userId === userId,
+    );
+    expect(beforeSync).toEqual({
+      userId,
+      apiKey: "140kfhot88gm2zacwcck7ku0e",
+      lastSyncedAt: null,
+    });
+
+    await markIntegrationSynced(
+      userId,
+      "intervals",
+      new Date("2026-08-05T10:00:00.000Z"),
+    );
+
+    const afterSync = (await listIntervalsCredentials()).find(
+      (row) => row.userId === userId,
+    );
+    expect(afterSync?.apiKey).toBe("140kfhot88gm2zacwcck7ku0e");
+    expect(afterSync?.lastSyncedAt?.toISOString()).toBe(
+      "2026-08-05T10:00:00.000Z",
+    );
+
+    await deleteUserIntegration(userId, "intervals");
   });
 });

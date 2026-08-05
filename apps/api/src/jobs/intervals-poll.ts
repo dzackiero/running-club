@@ -6,7 +6,9 @@ import {
 } from "../services/integrations";
 import { importFromIntervals } from "../services/intervals-import";
 
-export const INTERVALS_POLL_INTERVAL_MS = 2 * 60 * 60 * 1000;
+export const INTERVALS_POLL_INTERVAL_MS = 10 * 60 * 1000;
+export const INTERVALS_POLL_INITIAL_DELAY_MS = 30 * 1000;
+export const INTERVALS_SYNC_DUE_AFTER_MS = 2 * 60 * 60 * 1000;
 
 export type IntervalsPollDeps = {
   listCredentials: typeof listIntervalsCredentials;
@@ -14,7 +16,17 @@ export type IntervalsPollDeps = {
     userId: string,
     apiKey: string,
   ) => Promise<{ imported: number; updated: number; skipped: number }>;
+  now?: () => Date;
 };
+
+export function isIntervalsSyncDue(
+  lastSyncedAt: Date | null,
+  now: Date,
+  dueAfterMs = INTERVALS_SYNC_DUE_AFTER_MS,
+): boolean {
+  if (lastSyncedAt == null) return true;
+  return now.getTime() - lastSyncedAt.getTime() >= dueAfterMs;
+}
 
 export async function pollAllIntervalsImports(
   deps: IntervalsPollDeps = {
@@ -28,11 +40,18 @@ export async function pollAllIntervalsImports(
       return result;
     },
   },
-): Promise<{ users: number; failures: number }> {
+): Promise<{ users: number; due: number; failures: number }> {
   const credentials = await deps.listCredentials();
+  const now = deps.now?.() ?? new Date();
+  let due = 0;
   let failures = 0;
 
-  for (const { userId, apiKey } of credentials) {
+  for (const { userId, apiKey, lastSyncedAt } of credentials) {
+    if (!isIntervalsSyncDue(lastSyncedAt, now)) {
+      continue;
+    }
+
+    due += 1;
     try {
       await deps.importUser(userId, apiKey);
     } catch (err) {
@@ -44,11 +63,12 @@ export async function pollAllIntervalsImports(
     }
   }
 
-  return { users: credentials.length, failures };
+  return { users: credentials.length, due, failures };
 }
 
 export function startIntervalsPoller(
   intervalMs = INTERVALS_POLL_INTERVAL_MS,
+  initialDelayMs = INTERVALS_POLL_INITIAL_DELAY_MS,
 ): void {
   const tick = async () => {
     const result = await pollAllIntervalsImports();
@@ -61,8 +81,8 @@ export function startIntervalsPoller(
       void tick();
     }, intervalMs);
     repeating.unref?.();
-  }, intervalMs);
+  }, initialDelayMs);
 
   initial.unref?.();
-  logger.info({ intervalMs }, "Intervals poller scheduled");
+  logger.info({ intervalMs, initialDelayMs }, "Intervals poller scheduled");
 }

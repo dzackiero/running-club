@@ -127,12 +127,13 @@ export async function markIntegrationSynced(
 }
 
 export async function listIntervalsCredentials(): Promise<
-  { userId: string; apiKey: string }[]
+  { userId: string; apiKey: string; lastSyncedAt: Date | null }[]
 > {
   const rows = await db
     .select({
       userId: userIntegration.userId,
       secretCiphertext: userIntegration.secretCiphertext,
+      lastSyncedAt: userIntegration.lastSyncedAt,
     })
     .from(userIntegration)
     .where(eq(userIntegration.provider, "intervals"));
@@ -140,6 +141,7 @@ export async function listIntervalsCredentials(): Promise<
   return rows.map((row) => ({
     userId: row.userId,
     apiKey: decryptSecret(row.secretCiphertext, env.BETTER_AUTH_SECRET),
+    lastSyncedAt: row.lastSyncedAt ?? null,
   }));
 }
 
