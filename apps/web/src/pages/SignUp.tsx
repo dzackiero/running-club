@@ -53,7 +53,7 @@ export function SignUp() {
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Create account</h1>
         <p className="text-sm text-muted-foreground">
-          Then you can log runs and set a weekly target.
+          Then you can import runs, connect chat, and set a weekly target.
         </p>
       </div>
 

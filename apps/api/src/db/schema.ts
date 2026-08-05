@@ -17,6 +17,7 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
+  emailNotifications: boolean("email_notifications").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
@@ -393,3 +394,131 @@ export const weeklyGoal = pgTable(
       .where(sql`${t.active} = true`),
   }),
 );
+
+export const club = pgTable(
+  "club",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    inviteCode: text("invite_code").notNull(),
+    ownerUserId: text("owner_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    weekStartsOn: integer("week_starts_on").notNull().default(1),
+    weeklyTargetDistanceMeters: real("weekly_target_distance_meters"),
+    monthlyTargetDistanceMeters: real("monthly_target_distance_meters"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    inviteCodeUid: uniqueIndex("club_invite_code_uid").on(t.inviteCode),
+    ownerIdx: index("club_owner_idx").on(t.ownerUserId),
+  }),
+);
+
+export const clubMember = pgTable(
+  "club_member",
+  {
+    id: text("id").primaryKey(),
+    clubId: text("club_id")
+      .notNull()
+      .references(() => club.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    emailNudges: boolean("email_nudges").notNull().default(true),
+    joinedAt: timestamp("joined_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    clubUserUid: uniqueIndex("club_member_club_user_uid").on(t.clubId, t.userId),
+    userIdx: index("club_member_user_idx").on(t.userId),
+  }),
+);
+
+export const clubNudge = pgTable(
+  "club_nudge",
+  {
+    id: text("id").primaryKey(),
+    clubId: text("club_id")
+      .notNull()
+      .references(() => club.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    period: text("period").notNull(),
+    periodStart: timestamp("period_start", { withTimezone: true }).notNull(),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    uniqueSend: uniqueIndex("club_nudge_unique_send").on(
+      t.clubId,
+      t.userId,
+      t.period,
+      t.periodStart,
+    ),
+  }),
+);
+
+export const clubPeriodResult = pgTable(
+  "club_period_result",
+  {
+    id: text("id").primaryKey(),
+    clubId: text("club_id")
+      .notNull()
+      .references(() => club.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    period: text("period").notNull(),
+    periodStart: timestamp("period_start", { withTimezone: true }).notNull(),
+    periodEnd: timestamp("period_end", { withTimezone: true }).notNull(),
+    targetDistanceMeters: real("target_distance_meters"),
+    distanceMeters: real("distance_meters").notNull(),
+    hit: boolean("hit").notNull(),
+    lastManualNudgeAt: timestamp("last_manual_nudge_at", {
+      withTimezone: true,
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    uniquePeriod: uniqueIndex("club_period_result_unique").on(
+      t.clubId,
+      t.userId,
+      t.period,
+      t.periodStart,
+    ),
+    clubPeriodIdx: index("club_period_result_club_period_idx").on(
+      t.clubId,
+      t.period,
+      t.periodStart,
+    ),
+  }),
+);
+
+export const clubRelations = relations(club, ({ many, one }) => ({
+  owner: one(user, {
+    fields: [club.ownerUserId],
+    references: [user.id],
+  }),
+  members: many(clubMember),
+}));
+
+export const clubMemberRelations = relations(clubMember, ({ one }) => ({
+  club: one(club, {
+    fields: [clubMember.clubId],
+    references: [club.id],
+  }),
+  user: one(user, {
+    fields: [clubMember.userId],
+    references: [user.id],
+  }),
+}));

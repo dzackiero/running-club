@@ -1,7 +1,18 @@
 import type {
-  CreateRunInput,
+  ClubBoardView,
+  ClubDetail,
+  ClubPeriod,
+  ClubPeriodResultsView,
+  ClubSummary,
+  CreateClubInput,
+  InsightsBestEfforts,
   InsightsOverview,
+  PreferencesRecord,
   RunRecord,
+  SendClubPeriodMessageInput,
+  SendClubPeriodMessageResult,
+  UpdateClubInput,
+  UpdatePreferencesInput,
   UpdateRunInput,
   UpsertWeeklyGoalInput,
   WeekProgress,
@@ -40,7 +51,19 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export type { RunRecord, WeeklyGoalRecord, WeekProgress, InsightsOverview };
+export type {
+  ClubBoardView,
+  ClubDetail,
+  ClubPeriod,
+  ClubPeriodResultsView,
+  ClubSummary,
+  PreferencesRecord,
+  RunRecord,
+  WeeklyGoalRecord,
+  WeekProgress,
+  InsightsOverview,
+  InsightsBestEfforts,
+};
 
 export type ListRunsOptions = {
   limit?: number;
@@ -81,20 +104,28 @@ export function getInsightsOverview(
   );
 }
 
+export function getInsightsBestEfforts() {
+  return apiFetch<InsightsBestEfforts>("/insights/best-efforts");
+}
+
 export function getCurrentGoal() {
   return apiFetch<WeeklyGoalRecord | null>("/goals/current");
+}
+
+export function getPreferences() {
+  return apiFetch<PreferencesRecord>("/preferences");
+}
+
+export function updatePreferences(body: UpdatePreferencesInput) {
+  return apiFetch<PreferencesRecord>("/preferences", {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
 }
 
 export function putCurrentGoal(body: UpsertWeeklyGoalInput) {
   return apiFetch<WeeklyGoalRecord>("/goals/current", {
     method: "PUT",
-    body: JSON.stringify(body),
-  });
-}
-
-export function createRun(body: CreateRunInput) {
-  return apiFetch<RunRecord>("/runs", {
-    method: "POST",
     body: JSON.stringify(body),
   });
 }
@@ -144,5 +175,84 @@ export function disconnectIntervals() {
 export function importIntervalsActivities() {
   return apiFetch<IntervalsImportResult>("/integrations/intervals/import", {
     method: "POST",
+  });
+}
+
+export function listClubs() {
+  return apiFetch<ClubSummary[]>("/clubs");
+}
+
+export function createClub(body: CreateClubInput) {
+  return apiFetch<ClubSummary>("/clubs", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function joinClub(inviteCode: string) {
+  return apiFetch<ClubSummary>("/clubs/join", {
+    method: "POST",
+    body: JSON.stringify({ inviteCode }),
+  });
+}
+
+export function getClub(id: string) {
+  return apiFetch<ClubDetail>(`/clubs/${id}`);
+}
+
+export function getClubBoard(id: string, period: ClubPeriod, offset = 0) {
+  const params = new URLSearchParams({
+    period,
+    offset: String(offset),
+  });
+  return apiFetch<ClubBoardView>(`/clubs/${id}/board?${params}`);
+}
+
+export function getClubPeriodResults(id: string, period: ClubPeriod, offset = -1) {
+  const params = new URLSearchParams({
+    period,
+    offset: String(offset),
+  });
+  return apiFetch<ClubPeriodResultsView>(`/clubs/${id}/period-results?${params}`);
+}
+
+export function sendClubPeriodMessage(
+  id: string,
+  body: SendClubPeriodMessageInput,
+) {
+  return apiFetch<SendClubPeriodMessageResult>(
+    `/clubs/${id}/period-results/message`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export function updateClub(id: string, body: UpdateClubInput) {
+  return apiFetch<ClubSummary>(`/clubs/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export function deleteClub(id: string) {
+  return apiFetch<void>(`/clubs/${id}`, { method: "DELETE" });
+}
+
+export function leaveClub(id: string) {
+  return apiFetch<void>(`/clubs/${id}/leave`, { method: "POST" });
+}
+
+export function updateClubNudges(id: string, emailNudges: boolean) {
+  return apiFetch<ClubSummary>(`/clubs/${id}/me`, {
+    method: "PATCH",
+    body: JSON.stringify({ emailNudges }),
+  });
+}
+
+export function removeClubMember(clubId: string, userId: string) {
+  return apiFetch<void>(`/clubs/${clubId}/members/${userId}`, {
+    method: "DELETE",
   });
 }

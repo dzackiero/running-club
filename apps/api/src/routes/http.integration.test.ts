@@ -129,4 +129,67 @@ describe("HTTP runs and goals", () => {
     expect(getBody?.id).toBe(putBody.id);
     expect(getBody?.targetRunCount).toBe(4);
   });
+
+  it("creates a club, joins with an invite, and returns boards", async () => {
+    const createRes = await app.request("/clubs", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        cookie,
+      },
+      body: JSON.stringify({ name: "HTTP Club" }),
+    });
+    expect(createRes.status).toBe(201);
+    const created = await createRes.json();
+    expect(created.name).toBe("HTTP Club");
+    expect(created.inviteCode).toBeTruthy();
+
+    const patchRes = await app.request(`/clubs/${created.id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        cookie,
+      },
+      body: JSON.stringify({ weeklyTargetDistanceMeters: 20000 }),
+    });
+    expect(patchRes.status).toBe(200);
+    const patched = await patchRes.json();
+    expect(patched.weeklyTargetDistanceMeters).toBe(20000);
+
+    const detailRes = await app.request(`/clubs/${created.id}`, {
+      headers: { cookie },
+    });
+    expect(detailRes.status).toBe(200);
+    const detail = await detailRes.json();
+    expect(detail.week.board.some((row: { userId: string }) => row.userId === userId)).toBe(
+      true,
+    );
+
+    const boardRes = await app.request(
+      `/clubs/${created.id}/board?period=week&offset=-1`,
+      { headers: { cookie } },
+    );
+    expect(boardRes.status).toBe(200);
+    const board = await boardRes.json();
+    expect(board.period).toBe("week");
+    expect(board.offset).toBe(-1);
+    expect(Array.isArray(board.board)).toBe(true);
+
+    const futureRes = await app.request(
+      `/clubs/${created.id}/board?period=week&offset=1`,
+      { headers: { cookie } },
+    );
+    expect(futureRes.status).toBe(400);
+
+    const resultsRes = await app.request(
+      `/clubs/${created.id}/period-results?period=week`,
+      { headers: { cookie } },
+    );
+    expect(resultsRes.status).toBe(200);
+    const results = await resultsRes.json();
+    expect(results.period).toBe("week");
+    expect(results.offset).toBe(-1);
+    expect(results.captured).toBe(false);
+    expect(results.counts.memberCount).toBe(0);
+  });
 });

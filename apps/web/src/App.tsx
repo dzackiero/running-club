@@ -2,6 +2,8 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { GuestOnly } from "./components/GuestOnly";
 import { Layout } from "./components/Layout";
 import { RequireAuth } from "./components/RequireAuth";
+import { ClubDetail } from "./pages/ClubDetail";
+import { Clubs } from "./pages/Clubs";
 import { Connect } from "./pages/Connect";
 import { Consent } from "./pages/Consent";
 import { Goal } from "./pages/Goal";
@@ -26,6 +28,8 @@ export default function App() {
             <Route index element={<Home />} />
             <Route path="/runs/:id" element={<RunDetail />} />
             <Route path="/goal" element={<Goal />} />
+            <Route path="/clubs" element={<Clubs />} />
+            <Route path="/clubs/:id" element={<ClubDetail />} />
             <Route path="/insights" element={<Insights />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/connect" element={<Connect />} />

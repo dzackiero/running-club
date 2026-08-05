@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { weeklyGoalHasTargets } from "@running-club/shared";
-import { LogRunDialog } from "@/components/LogRunDialog";
+import { EditRunDialog } from "@/components/EditRunDialog";
 import { AppLoading } from "@/components/AppLoading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -279,10 +279,10 @@ function RunRow({
 
   return (
     <li className="border-b border-border text-sm">
-      <div className="flex items-stretch gap-0.5 py-3">
+      <div className="relative px-2.5 transition-colors duration-150 hover:bg-foreground/4 active:bg-foreground/7">
         <Link
           to={`/runs/${run.id}`}
-          className="flex min-w-0 flex-1 gap-2.5 rounded-md p-1 outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex min-w-0 gap-2.5 py-3 pr-10 outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label={`View ${activityLabel(run.activityType)} on ${date}`}
         >
           <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-secondary">
@@ -313,30 +313,36 @@ function RunRow({
           </div>
         </Link>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              className="mt-1 shrink-0 self-start text-muted-foreground"
-              aria-label="Run actions"
-              disabled={deleting}
-            >
-              <MoreVertical />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem asChild>
-              <Link to={`/runs/${run.id}`}>View details</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onEdit(run)}>Edit</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={handleDelete}>
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div
+          className="absolute top-3 right-2.5"
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="text-muted-foreground hover:bg-transparent hover:text-foreground aria-expanded:bg-transparent"
+                aria-label="Run actions"
+                disabled={deleting}
+              >
+                <MoreVertical />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link to={`/runs/${run.id}`}>View details</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onEdit(run)}>Edit</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={handleDelete}>
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </li>
   );
@@ -349,7 +355,6 @@ export function Home() {
   const [week, setWeek] = useState<WeekProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [logOpen, setLogOpen] = useState(false);
   const [editingRun, setEditingRun] = useState<RunRecord | null>(null);
   const requestId = useRef(0);
 
@@ -429,24 +434,12 @@ export function Home() {
           <h2 className="text-xs font-semibold tracking-wide text-primary uppercase">
             Runs
           </h2>
-          <div className="flex shrink-0 items-center gap-2">
-            <Link
-              to="/goal"
-              className="px-1 text-sm text-primary underline-offset-4 hover:underline"
-            >
-              Goal
-            </Link>
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => {
-                setEditingRun(null);
-                setLogOpen(true);
-              }}
-            >
-              Log run
-            </Button>
-          </div>
+          <Link
+            to="/goal"
+            className="px-1 text-sm text-primary underline-offset-4 hover:underline"
+          >
+            Goal
+          </Link>
         </div>
         <Separator className="mb-1" />
         {runs.length === 0 ? (
@@ -454,16 +447,12 @@ export function Home() {
             {weekOffset === 0 ? (
               <>
                 Nothing this week.{" "}
-                <button
-                  type="button"
+                <Link
+                  to="/connect"
                   className="font-medium text-primary underline-offset-4 hover:underline"
-                  onClick={() => {
-                    setEditingRun(null);
-                    setLogOpen(true);
-                  }}
                 >
-                  Log a run
-                </button>
+                  Import or log from chat
+                </Link>
               </>
             ) : (
               "No runs this week."
@@ -477,7 +466,6 @@ export function Home() {
                 run={run}
                 onEdit={(r) => {
                   setEditingRun(r);
-                  setLogOpen(true);
                 }}
                 onDeleted={() => {
                   void refresh();
@@ -488,17 +476,18 @@ export function Home() {
         )}
       </div>
 
-      <LogRunDialog
-        open={logOpen}
-        onOpenChange={(open) => {
-          setLogOpen(open);
-          if (!open) setEditingRun(null);
-        }}
-        run={editingRun}
-        onSaved={() => {
-          void refresh();
-        }}
-      />
+      {editingRun ? (
+        <EditRunDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setEditingRun(null);
+          }}
+          run={editingRun}
+          onSaved={() => {
+            void refresh();
+          }}
+        />
+      ) : null}
     </section>
   );
 }

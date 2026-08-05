@@ -109,4 +109,29 @@ export type InsightsOverview = {
   };
   /** True when fewer than 2 runs across current + previous periods. */
   sparse: boolean;
+  streak: {
+    currentWeeks: number;
+    bestWeeks: number;
+    weekStartsOn: number;
+  };
+};
+
+export type InsightsBestEffortLabel = "1k" | "5k" | "10k" | "21k" | "42k";
+
+export type InsightsBestEffort = {
+  rank: 1 | 2 | 3;
+  runId: string;
+  startedAt: string;
+  durationSeconds: number;
+  source: "stream" | "run";
+};
+
+export type InsightsBestEffortDistance = {
+  label: InsightsBestEffortLabel;
+  distanceMeters: number;
+  efforts: InsightsBestEffort[];
+};
+
+export type InsightsBestEfforts = {
+  distances: InsightsBestEffortDistance[];
 };

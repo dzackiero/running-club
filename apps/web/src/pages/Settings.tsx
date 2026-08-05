@@ -11,7 +11,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { getCurrentGoal, putCurrentGoal } from "@/lib/api";
+import { Switch } from "@/components/ui/switch";
+import {
+  getCurrentGoal,
+  getPreferences,
+  putCurrentGoal,
+  updatePreferences,
+} from "@/lib/api";
 import { authClient } from "@/lib/auth-client";
 import { WEEKDAY_OPTIONS } from "@/lib/format";
 
@@ -26,6 +32,7 @@ export function Settings() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [loadingWeek, setLoadingWeek] = useState(true);
+  const [emailNotifications, setEmailNotifications] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingWeek, setSavingWeek] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
@@ -61,21 +68,23 @@ export function Settings() {
   }, [user]);
 
   useEffect(() => {
-    getCurrentGoal()
-      .then((goal) => {
-        if (!goal) return;
-        setWeekStartsOn(goal.weekStartsOn);
-        setGoalSnapshot({
-          ...(goal.targetDistanceMeters != null
-            ? { targetDistanceMeters: goal.targetDistanceMeters }
-            : {}),
-          ...(goal.targetDurationSeconds != null
-            ? { targetDurationSeconds: goal.targetDurationSeconds }
-            : {}),
-          ...(goal.targetRunCount != null
-            ? { targetRunCount: goal.targetRunCount }
-            : {}),
-        });
+    Promise.all([getCurrentGoal(), getPreferences()])
+      .then(([goal, prefs]) => {
+        if (goal) {
+          setWeekStartsOn(goal.weekStartsOn);
+          setGoalSnapshot({
+            ...(goal.targetDistanceMeters != null
+              ? { targetDistanceMeters: goal.targetDistanceMeters }
+              : {}),
+            ...(goal.targetDurationSeconds != null
+              ? { targetDurationSeconds: goal.targetDurationSeconds }
+              : {}),
+            ...(goal.targetRunCount != null
+              ? { targetRunCount: goal.targetRunCount }
+              : {}),
+          });
+        }
+        setEmailNotifications(prefs.emailNotifications);
       })
       .catch((err) =>
         toast.error(
@@ -172,7 +181,7 @@ export function Settings() {
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground">
-          Name, when your week starts, and password.
+          Name, preferences, and password.
         </p>
       </div>
 
@@ -209,9 +218,13 @@ export function Settings() {
       <Separator />
 
       <form onSubmit={saveWeekStartsOn} className="space-y-4">
-        <h2 className="text-base font-medium">Week</h2>
+        <h2 className="text-base font-medium">Preferences</h2>
         <div className="space-y-2">
           <Label htmlFor="week-starts">Week starts on</Label>
+          <p className="text-xs text-muted-foreground">
+            Personal Home and Insights only. Club boards use each club’s own week
+            start.
+          </p>
           {loadingWeek ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : (
@@ -235,6 +248,30 @@ export function Settings() {
         <Button type="submit" disabled={savingWeek || loadingWeek}>
           {savingWeek ? "Saving…" : "Save week start"}
         </Button>
+        <div className="flex items-center justify-between gap-3 pt-2">
+          <div>
+            <p className="text-sm font-medium">Email notifications</p>
+            <p className="text-xs text-muted-foreground">
+              Club miss emails and other CUP Run mail. Turn off to stop all emails.
+            </p>
+          </div>
+          <Switch
+            checked={emailNotifications}
+            disabled={loadingWeek}
+            onCheckedChange={async (checked) => {
+              const previous = emailNotifications;
+              setEmailNotifications(checked);
+              try {
+                await updatePreferences({ emailNotifications: checked });
+              } catch (err) {
+                setEmailNotifications(previous);
+                toast.error(
+                  err instanceof Error ? err.message : "Couldn’t update emails",
+                );
+              }
+            }}
+          />
+        </div>
       </form>
 
       <Separator />

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Area, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import type { InsightsGrain } from "@running-club/shared";
 import { AppLoading } from "@/components/AppLoading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import {
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
 import { Input } from "@/components/ui/input";
@@ -19,8 +18,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getInsightsOverview, type InsightsOverview } from "@/lib/api";
-import { formatKm, formatPace, formatWeekRange } from "@/lib/format";
+import {
+  getInsightsBestEfforts,
+  getInsightsOverview,
+  type InsightsBestEfforts,
+  type InsightsOverview,
+} from "@/lib/api";
+import {
+  formatDate,
+  formatDurationClock,
+  formatKm,
+  formatPace,
+  formatWeekRange,
+} from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 type Preset = "this_month" | "last_month" | "last_3_months" | "ytd" | "custom";
@@ -188,11 +198,17 @@ function TrendChart({
       config={distanceChartConfig}
       className="aspect-auto h-55 w-full"
     >
-      <BarChart
+      <LineChart
         accessibilityLayer
         data={chartData}
         margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
       >
+        <defs>
+          <linearGradient id="kmFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--rc-lane)" stopOpacity={0.22} />
+            <stop offset="100%" stopColor="var(--rc-lane-soft)" stopOpacity={0} />
+          </linearGradient>
+        </defs>
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
         <XAxis
           dataKey="label"
@@ -209,24 +225,43 @@ function TrendChart({
           tickFormatter={(value) => String(value)}
         />
         <ChartTooltip
-          cursor={false}
-          content={
-            <ChartTooltipContent
-              formatter={(value) => (
-                <span className="font-medium tabular-nums text-foreground">
-                  {Number(value).toFixed(1)} km
-                </span>
-              )}
-            />
-          }
+          cursor={{ stroke: "var(--rc-line)", strokeWidth: 1 }}
+          content={({ active, payload, label }) => {
+            if (!active || !payload?.length) return null;
+            const row = payload[0]?.payload as {
+              km: number;
+              runs: number;
+            };
+            return (
+              <div className="grid min-w-32 gap-0.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-sm">
+                <p className="font-medium text-foreground">{label}</p>
+                <p className="tabular-nums text-foreground">
+                  {row.km.toFixed(1)} km
+                </p>
+                <p className="text-muted-foreground">
+                  {row.runs} {row.runs === 1 ? "run" : "runs"}
+                </p>
+              </div>
+            );
+          }}
         />
-        <Bar
+        <Area
+          type="monotone"
           dataKey="km"
-          fill="var(--color-km)"
-          radius={[4, 4, 0, 0]}
-          maxBarSize={grain === "day" ? 28 : 48}
+          stroke="none"
+          fill="url(#kmFill)"
+          isAnimationActive={false}
         />
-      </BarChart>
+        <Line
+          type="monotone"
+          dataKey="km"
+          stroke="var(--color-km)"
+          strokeWidth={2}
+          dot={{ r: 3, fill: "var(--color-km)", strokeWidth: 0 }}
+          activeDot={{ r: 5, strokeWidth: 0 }}
+          isAnimationActive={false}
+        />
+      </LineChart>
     </ChartContainer>
   );
 }
@@ -307,8 +342,25 @@ export function Insights() {
   );
 
   const [data, setData] = useState<InsightsOverview | null>(null);
+  const [bestEfforts, setBestEfforts] = useState<InsightsBestEfforts | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    getInsightsBestEfforts()
+      .then((efforts) => {
+        if (!cancelled) setBestEfforts(efforts);
+      })
+      .catch(() => {
+        if (!cancelled) setBestEfforts({ distances: [] });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -493,54 +545,96 @@ export function Insights() {
               <TrendChart buckets={overview.buckets} grain={overview.grain} />
             </div>
           </section>
-
-          <section className="grid gap-4 sm:grid-cols-2 sm:gap-5">
-            <div className="rounded-xl border border-border bg-card px-4 py-4 sm:px-5 sm:py-5">
-              <h2 className="text-sm font-semibold text-foreground">
-                Consistency
-              </h2>
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                <MiniStat
-                  label="Days ran"
-                  value={String(overview.consistency.daysWithRun)}
-                />
-                <MiniStat
-                  label="Longest gap"
-                  value={String(overview.consistency.longestGapDays)}
-                  unit={
-                    overview.consistency.longestGapDays === 1 ? "day" : "days"
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-border bg-card px-4 py-4 sm:px-5 sm:py-5">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-sm font-semibold text-foreground">Goals</h2>
-                <Link
-                  to="/goal"
-                  className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-                >
-                  {hasGoalWeeks ? "Edit" : "Set goal"}
-                </Link>
-              </div>
-              {hasGoalWeeks ? (
-                <div className="mt-4 grid grid-cols-2 gap-4">
-                  <MiniStat label="Hit" value={String(overview.goals.hit)} />
-                  <MiniStat
-                    label="Missed"
-                    value={String(overview.goals.missed)}
-                  />
-                </div>
-              ) : (
-                <p className="mt-4 text-sm text-muted-foreground">
-                  No weekly target in this range.
-                </p>
-              )}
-            </div>
-          </section>
         </>
       )}
+
+      <section className="grid gap-4 sm:grid-cols-2 sm:gap-5">
+        <div className="rounded-xl border border-border bg-card px-4 py-4 sm:px-5 sm:py-5">
+          <h2 className="text-sm font-semibold text-foreground">Consistency</h2>
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            <MiniStat
+              label="Week streak"
+              value={String(overview.streak.currentWeeks)}
+              unit={overview.streak.currentWeeks === 1 ? "wk" : "wks"}
+            />
+            <MiniStat
+              label="Best streak"
+              value={String(overview.streak.bestWeeks)}
+              unit={overview.streak.bestWeeks === 1 ? "wk" : "wks"}
+            />
+            <MiniStat
+              label="Days ran"
+              value={String(overview.consistency.daysWithRun)}
+            />
+            <MiniStat
+              label="Longest gap"
+              value={String(overview.consistency.longestGapDays)}
+              unit={overview.consistency.longestGapDays === 1 ? "day" : "days"}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card px-4 py-4 sm:px-5 sm:py-5">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-foreground">Goals</h2>
+            <Link
+              to="/goal"
+              className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+            >
+              {hasGoalWeeks ? "Edit" : "Set goal"}
+            </Link>
+          </div>
+          {hasGoalWeeks ? (
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <MiniStat label="Hit" value={String(overview.goals.hit)} />
+              <MiniStat label="Missed" value={String(overview.goals.missed)} />
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-muted-foreground">
+              No weekly target in this range.
+            </p>
+          )}
+        </div>
+      </section>
+
+      {bestEfforts && bestEfforts.distances.length > 0 ? (
+        <section>
+          <h2 className="text-base font-semibold text-foreground">
+            Best performances
+          </h2>
+          <div className="mt-3 divide-y divide-border border-y border-border">
+            {bestEfforts.distances.map((distance) => (
+              <div key={distance.label} className="py-4">
+                <p className="text-sm font-semibold text-foreground">
+                  {distance.label}
+                </p>
+                <ol className="mt-2 space-y-1.5">
+                  {distance.efforts.map((effort) => (
+                    <li key={`${distance.label}-${effort.rank}`}>
+                      <Link
+                        to={`/runs/${effort.runId}`}
+                        className="flex items-baseline justify-between gap-3 rounded-md py-1 text-foreground hover:text-primary"
+                      >
+                        <span className="flex min-w-0 items-baseline gap-3">
+                          <span className="w-4 text-xs tabular-nums text-muted-foreground">
+                            {effort.rank}
+                          </span>
+                          <span className="font-(family-name:--font-stat) text-xl font-semibold tabular-nums tracking-tight">
+                            {formatDurationClock(effort.durationSeconds)}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-sm text-muted-foreground">
+                          {formatDate(effort.startedAt)}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </section>
   );
 }

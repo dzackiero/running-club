@@ -8,7 +8,12 @@ import { Hono } from "hono";
 import { ZodError } from "zod";
 import type { AppEnv } from "../app";
 import { jsonError } from "../lib/errors";
-import { getSummary, getWeekProgress, getInsightsOverview } from "../services/insights";
+import {
+  getBestEfforts,
+  getSummary,
+  getWeekProgress,
+  getInsightsOverview,
+} from "../services/insights";
 
 export const insightsRoutes = new Hono<AppEnv>();
 
@@ -67,4 +72,10 @@ insightsRoutes.get("/overview", async (c) => {
     }
     throw err;
   }
+});
+
+insightsRoutes.get("/best-efforts", async (c) => {
+  const user = c.get("user")!;
+  const bestEfforts = await getBestEfforts(user.id);
+  return c.json(bestEfforts);
 });

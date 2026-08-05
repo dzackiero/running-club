@@ -1,18 +1,23 @@
 import type {
+  InsightsBestEfforts,
   InsightsBucket,
   InsightsGrain,
   InsightsOverview,
   OverviewQuery,
+  RunStreams,
   SummaryQuery,
   WeekProgress,
   WeeklyGoalRecord,
 } from "@running-club/shared";
 import { weeklyGoalHasTargets } from "@running-club/shared";
-import { and, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { db } from "../db/client";
 import { run } from "../db/schema";
 import { avgPaceSecPerKm } from "../lib/pace";
+import { getWeekBounds, shiftWeek } from "../lib/period";
+import { rankBestEfforts } from "./best-efforts";
 import { getCurrentGoal } from "./goals";
+import { computeWeeklyStreak } from "./weekly-streak";
 
 export type { WeekProgress, InsightsOverview };
 
@@ -94,6 +99,14 @@ async function fetchRunsInRange(
         lte(run.startedAt, to),
       ),
     );
+}
+
+async function fetchRunStartedAts(userId: string): Promise<Date[]> {
+  const rows = await db
+    .select({ startedAt: run.startedAt })
+    .from(run)
+    .where(eq(run.userId, userId));
+  return rows.map((row) => row.startedAt);
 }
 
 function previousPeriodBounds(from: Date, to: Date): { from: Date; to: Date } {
@@ -182,34 +195,6 @@ export async function getSummary(
       avgPaceSecPerKm: previous.avgPaceSecPerKm,
     },
   };
-}
-
-function getWeekBounds(
-  now: Date,
-  weekStartsOn: number,
-): { weekStart: Date; weekEnd: Date } {
-  const day = now.getUTCDay();
-  const daysSinceStart = (day - weekStartsOn + 7) % 7;
-
-  const weekStart = new Date(
-    Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate() - daysSinceStart,
-    ),
-  );
-
-  const weekEnd = new Date(weekStart);
-  weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
-  weekEnd.setUTCHours(23, 59, 59, 999);
-
-  return { weekStart, weekEnd };
-}
-
-function shiftWeek(weekStart: Date, weekDelta: number): Date {
-  const next = new Date(weekStart);
-  next.setUTCDate(next.getUTCDate() + weekDelta * 7);
-  return next;
 }
 
 function progressRatio(
@@ -454,13 +439,15 @@ export async function getInsightsOverview(
   const prev = previousPeriodBounds(currentFrom, currentTo);
   const grain = options.grain ?? pickGrain(currentFrom, currentTo);
 
-  const goal = await getCurrentGoal(userId);
-  const weekStartsOn = goal?.weekStartsOn ?? 1;
-
-  const [currentRows, previousRows] = await Promise.all([
+  const [goal, currentRows, previousRows, allStartedAts] = await Promise.all([
+    getCurrentGoal(userId),
     fetchRunsInRange(userId, currentFrom, currentTo),
     fetchRunsInRange(userId, prev.from, prev.to),
+    fetchRunStartedAts(userId),
   ]);
+  const weekStartsOn = goal?.weekStartsOn ?? 1;
+
+  const streak = computeWeeklyStreak(allStartedAts, weekStartsOn, now);
 
   const current = aggregateRuns(currentRows);
   const previous = aggregateRuns(previousRows);
@@ -519,5 +506,40 @@ export async function getInsightsOverview(
     },
     goals,
     sparse: current.runCount + previous.runCount < 2,
+    streak: {
+      currentWeeks: streak.currentWeeks,
+      bestWeeks: streak.bestWeeks,
+      weekStartsOn,
+    },
+  };
+}
+
+export async function getBestEfforts(
+  userId: string,
+): Promise<InsightsBestEfforts> {
+  const rows = await db
+    .select({
+      id: run.id,
+      startedAt: run.startedAt,
+      distanceMeters: run.distanceMeters,
+      durationSeconds: run.durationSeconds,
+      activityType: run.activityType,
+      streams: run.streams,
+    })
+    .from(run)
+    .where(eq(run.userId, userId))
+    .orderBy(desc(run.startedAt));
+
+  return {
+    distances: rankBestEfforts(
+      rows.map((row) => ({
+        id: row.id,
+        startedAt: row.startedAt.toISOString(),
+        distanceMeters: row.distanceMeters,
+        durationSeconds: row.durationSeconds,
+        activityType: row.activityType,
+        streams: (row.streams as RunStreams | null) ?? null,
+      })),
+    ),
   };
 }

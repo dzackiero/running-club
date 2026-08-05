@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { HrZoneBar } from "@/components/HrZoneBar";
-import { LogRunDialog } from "@/components/LogRunDialog";
+import { EditRunDialog } from "@/components/EditRunDialog";
 import { AppLoading } from "@/components/AppLoading";
 import {
   RunDetailMetrics,
@@ -328,7 +328,7 @@ export function RunDetail() {
         Started {formatStartedAt(run.startedAt)}
       </p>
 
-      <LogRunDialog
+      <EditRunDialog
         open={editOpen}
         onOpenChange={setEditOpen}
         run={run}

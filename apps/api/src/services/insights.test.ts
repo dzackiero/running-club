@@ -2,19 +2,28 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { deleteTestUsers, ensureTestUsers } from "../test/users";
 import { upsertCurrentGoal } from "./goals";
 import { createRun } from "./runs";
-import { getSummary, getWeekProgress, getInsightsOverview } from "./insights";
+import {
+  getBestEfforts,
+  getSummary,
+  getWeekProgress,
+  getInsightsOverview,
+} from "./insights";
 
 const summaryUserId = "user_test_insights_summary";
 const weekUserId = "user_test_insights_week";
 const noGoalUserId = "user_test_insights_no_goal";
 const overviewUserId = "user_test_insights_overview";
 const overviewMonthUserId = "user_test_insights_overview_month";
+const streakUserId = "user_test_insights_streak";
+const bestEffortUserId = "user_test_insights_best_efforts";
 const testUserIds = [
   summaryUserId,
   weekUserId,
   noGoalUserId,
   overviewUserId,
   overviewMonthUserId,
+  streakUserId,
+  bestEffortUserId,
 ];
 
 describe("insights service", () => {
@@ -228,5 +237,77 @@ describe("insights service", () => {
     expect(overview.grain).toBe("month");
     expect(overview.buckets).toHaveLength(3);
     expect(overview.totals.distanceMeters).toBe(13000);
+  });
+
+  it("getInsightsOverview includes all-time weekly streak using goal week start", async () => {
+    await upsertCurrentGoal(streakUserId, {
+      weekStartsOn: 1,
+      targetDistanceMeters: 8000,
+    });
+    await createRun(streakUserId, {
+      startedAt: "2026-08-04T06:00:00.000Z",
+      distanceMeters: 5000,
+      durationSeconds: 1500,
+      activityType: "run",
+    });
+    await createRun(streakUserId, {
+      startedAt: "2026-07-28T06:00:00.000Z",
+      distanceMeters: 5000,
+      durationSeconds: 1500,
+      activityType: "run",
+    });
+    await createRun(streakUserId, {
+      startedAt: "2026-07-21T06:00:00.000Z",
+      distanceMeters: 5000,
+      durationSeconds: 1500,
+      activityType: "run",
+    });
+
+    const overview = await getInsightsOverview(streakUserId, {
+      now: new Date("2026-08-06T12:00:00.000Z"),
+    });
+
+    expect(overview.streak).toEqual({
+      currentWeeks: 3,
+      bestWeeks: 3,
+      weekStartsOn: 1,
+    });
+  });
+
+  it("getBestEfforts returns top stream and whole-run performances", async () => {
+    await createRun(bestEffortUserId, {
+      startedAt: "2026-07-01T06:00:00.000Z",
+      distanceMeters: 5000,
+      durationSeconds: 1600,
+      activityType: "run",
+    });
+    await createRun(bestEffortUserId, {
+      startedAt: "2026-07-08T06:00:00.000Z",
+      distanceMeters: 5000,
+      durationSeconds: 1500,
+      activityType: "run",
+    });
+    await createRun(bestEffortUserId, {
+      startedAt: "2026-07-15T06:00:00.000Z",
+      distanceMeters: 3000,
+      durationSeconds: 900,
+      activityType: "run",
+      streams: {
+        t: [0, 90, 180, 270],
+        pace: [270, 270, 270, 270],
+        hr: [null, null, null, null],
+      },
+    });
+
+    const result = await getBestEfforts(bestEffortUserId);
+    const oneK = result.distances.find((row) => row.label === "1k");
+    const fiveK = result.distances.find((row) => row.label === "5k");
+
+    expect(oneK?.efforts[0]?.durationSeconds).toBe(270);
+    expect(oneK?.efforts[0]?.source).toBe("stream");
+    expect(fiveK?.efforts.map((effort) => effort.durationSeconds)).toEqual([
+      1500, 1600,
+    ]);
+    expect(result.distances.some((row) => row.label === "42k")).toBe(false);
   });
 });

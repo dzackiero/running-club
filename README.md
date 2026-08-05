@@ -1,6 +1,6 @@
 # CUP Run
 
-Personal running log with a REST API and **remote MCP server** for ChatGPT. Store runs, set weekly goals, and query stats from ChatGPT via OAuth — no pasted API keys.
+Personal running log with a REST API and **remote MCP server** for ChatGPT. Store runs, set weekly goals, join private clubs with km boards, and query stats from ChatGPT via OAuth — no pasted API keys.
 
 ## Stack
 
@@ -32,6 +32,8 @@ cp .env.example .env
 | `VITE_API_URL` | API base URL the browser calls (e.g. `http://localhost:8787`) |
 | `GOOGLE_CLIENT_ID` | Optional. Google OAuth client ID for “Continue with Google” |
 | `GOOGLE_CLIENT_SECRET` | Optional. Google OAuth client secret |
+| `RESEND_API_KEY` | Optional. Sends club miss emails after a week/month ends |
+| `EMAIL_FROM` | Optional. From address, e.g. `CUP Run <onboarding@resend.dev>` |
 
 ### 2. Install and database
 
@@ -53,9 +55,18 @@ pnpm dev
 
 Run individually: `pnpm --filter @running-club/api dev` or `pnpm --filter @running-club/web dev`.
 
+The web app is a **PWA** (standalone install). Dev mode does not register a service worker. To try Add to Home Screen / desktop install locally:
+
+```bash
+pnpm --filter @running-club/web build
+pnpm --filter @running-club/web preview
+```
+
+Open http://localhost:4173 → Chrome/Edge install icon, or mobile browser **Add to Home Screen**. API traffic (`VITE_API_URL`, `/api`, `localhost:8787`) is network-only so private data is not served stale from cache.
+
 ### 4. Create an account
 
-Open the web app → sign up at `/sign-up` (email/password or Google). Use `/goal` to set a weekly target and `/` to view run history (logged via ChatGPT or REST).
+Open the web app → sign up at `/sign-up` (email/password or Google). Use `/goal` to set a weekly target and `/` to view run history. Add runs via ChatGPT/Claude MCP or Intervals import.
 
 ### 5. Google sign-in (optional)
 
@@ -200,7 +211,7 @@ Build-time env (baked into the client; redeploy web if you change it):
 VITE_API_URL=https://api.yourdomain.com
 ```
 
-Root helpers used by the Railpack configs: `pnpm run build:api`, `pnpm run start:api`, `pnpm run build:web`.
+Root helpers used by the Railpack configs: `pnpm run build:api`, `pnpm run start:api`, `pnpm run build:web`. Production web is served as a static SPA (`serve -s`); the service worker and manifest are emitted into `apps/web/dist` at build time.
 
 If deploy fails with **JavaScript heap out of memory**, add on the Dokploy app:
 

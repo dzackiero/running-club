@@ -14,9 +14,11 @@ import { handleMcpRequest } from "./mcp/server";
 import { requireUser } from "./middleware/require-user";
 import { requestLogger } from "./middleware/request-logger";
 import { sessionMiddleware } from "./middleware/session";
+import { clubsRoutes } from "./routes/clubs";
 import { goalsRoutes } from "./routes/goals";
 import { insightsRoutes } from "./routes/insights";
 import { integrationsRoutes } from "./routes/integrations";
+import { preferencesRoutes } from "./routes/preferences";
 import { runsRoutes } from "./routes/runs";
 
 export type AppEnv = {
@@ -114,3 +116,10 @@ app.route("/insights", insightsRoutes);
 app.use("/integrations", requireUser);
 app.use("/integrations/*", requireUser);
 app.route("/integrations", integrationsRoutes);
+
+app.use("/clubs", requireUser);
+app.use("/clubs/*", requireUser);
+app.route("/clubs", clubsRoutes);
+
+app.use("/preferences", requireUser);
+app.route("/preferences", preferencesRoutes);
