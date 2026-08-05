@@ -76,6 +76,7 @@ describe("mapIntervalsActivityToRun", () => {
           type: "LAP",
           distance: 1000,
           moving_time: 300,
+          elapsed_time: 308,
           average_heartrate: 149,
         },
       ],
@@ -87,7 +88,7 @@ describe("mapIntervalsActivityToRun", () => {
     expect(mapped?.hrZoneBpm).toEqual([0, 141, 158, 175]);
     expect(mapped?.polyline).toBe("_p~iF~ps|U_ulLnnqC");
     expect(mapped?.splits).toEqual([
-      { distanceMeters: 1000, durationSeconds: 300, avgHeartRate: 149 },
+      { distanceMeters: 1000, durationSeconds: 308, avgHeartRate: 149 },
     ]);
   });
 });

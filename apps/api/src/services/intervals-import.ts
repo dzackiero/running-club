@@ -111,10 +111,8 @@ export async function importFromIntervals(
         const rawStreams = await client.getStreams(mapped.externalId);
         const streams = downsampleIntervalsStreams(rawStreams);
         if (streams) payload = { ...payload, streams };
-        if (!payload.splits?.length) {
-          const derived = splitsFromRawStreams(rawStreams);
-          if (derived.length > 0) payload = { ...payload, splits: derived };
-        }
+        const derived = splitsFromRawStreams(rawStreams);
+        if (derived.length > 0) payload = { ...payload, splits: derived };
       } catch (err) {
         if (err instanceof IntervalsHttpError && err.status === 429) throw err;
         logger.warn(

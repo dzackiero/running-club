@@ -19,7 +19,7 @@ export function mapIntervalsLapsToSplits(laps: IntervalsLap[]): MappedSplit[] {
     if (type === "WORK" || type === "REST" || type === "RECOVERY") continue;
 
     const distance = lap.distance;
-    const duration = lap.moving_time ?? lap.elapsed_time;
+    const duration = lap.elapsed_time ?? lap.moving_time;
     if (
       typeof distance !== "number" ||
       !Number.isFinite(distance) ||

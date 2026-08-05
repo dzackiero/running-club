@@ -9,20 +9,29 @@ describe("mapIntervalsLapsToSplits", () => {
           type: "LAP",
           distance: 1000,
           moving_time: 300,
+          elapsed_time: 312,
           average_heartrate: 148,
         },
         { type: "WORK", distance: 400, moving_time: 90 },
         { type: "REST", distance: 50, moving_time: 60 },
       ]),
     ).toEqual([
-      { distanceMeters: 1000, durationSeconds: 300, avgHeartRate: 148 },
+      { distanceMeters: 1000, durationSeconds: 312, avgHeartRate: 148 },
     ]);
+  });
+
+  it("falls back to moving time when elapsed is missing", () => {
+    expect(
+      mapIntervalsLapsToSplits([
+        { type: "LAP", distance: 1000, moving_time: 300 },
+      ]),
+    ).toEqual([{ distanceMeters: 1000, durationSeconds: 300 }]);
   });
 
   it("treats unlabeled ~1km rows as laps", () => {
     expect(
       mapIntervalsLapsToSplits([
-        { type: null, distance: 1002, moving_time: 310, average_heartrate: 150 },
+        { type: null, distance: 1002, elapsed_time: 310, average_heartrate: 150 },
       ]),
     ).toEqual([
       { distanceMeters: 1002, durationSeconds: 310, avgHeartRate: 150 },
