@@ -155,7 +155,7 @@ describe("insights service", () => {
     expect(progress.totals.runCount).toBe(1);
   });
 
-  it("getInsightsOverview defaults to this calendar month with week grain", async () => {
+  it("getInsightsOverview defaults to this calendar month with day grain when short", async () => {
     await upsertCurrentGoal(overviewUserId, {
       weekStartsOn: 1,
       targetDistanceMeters: 8000,
@@ -187,13 +187,22 @@ describe("insights service", () => {
 
     expect(overview.from).toBe("2026-08-01T00:00:00.000Z");
     expect(overview.to).toBe("2026-08-06T23:59:59.999Z");
-    expect(overview.grain).toBe("week");
-    expect(overview.buckets.length).toBeGreaterThanOrEqual(1);
+    expect(overview.grain).toBe("day");
+    expect(overview.buckets).toHaveLength(6);
     expect(overview.totals.distanceMeters).toBe(15000);
     expect(overview.totals.runCount).toBe(2);
     expect(overview.previous.runCount).toBe(1);
     expect(overview.sparse).toBe(false);
     expect(overview.consistency.daysWithRun).toBe(2);
+  });
+
+  it("getInsightsOverview respects explicit week grain", async () => {
+    const overview = await getInsightsOverview(overviewUserId, {
+      now: new Date("2026-08-06T12:00:00.000Z"),
+      grain: "week",
+    });
+    expect(overview.grain).toBe("week");
+    expect(overview.buckets.length).toBeGreaterThanOrEqual(1);
   });
 
   it("getInsightsOverview uses month grain for longer ranges", async () => {
@@ -213,6 +222,7 @@ describe("insights service", () => {
     const overview = await getInsightsOverview(overviewMonthUserId, {
       from: "2026-06-01T00:00:00.000Z",
       to: "2026-08-06T23:59:59.999Z",
+      grain: "month",
     });
 
     expect(overview.grain).toBe("month");

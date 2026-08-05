@@ -15,11 +15,15 @@ export const weekQuerySchema = z.object({
 
 export type WeekQuery = z.infer<typeof weekQuerySchema>;
 
+export const insightsGrainSchema = z.enum(["day", "week", "month"]);
+export type InsightsGrain = z.infer<typeof insightsGrainSchema>;
+
 /** Optional range for insights overview (defaults to this calendar month so far). */
 export const overviewQuerySchema = z
   .object({
     from: z.string().datetime().optional(),
     to: z.string().datetime().optional(),
+    grain: insightsGrainSchema.optional(),
   })
   .superRefine((val, ctx) => {
     if ((val.from == null) !== (val.to == null)) {
@@ -28,7 +32,11 @@ export const overviewQuerySchema = z
         message: "from and to must both be provided",
       });
     }
-    if (val.from && val.to && new Date(val.from).getTime() > new Date(val.to).getTime()) {
+    if (
+      val.from &&
+      val.to &&
+      new Date(val.from).getTime() > new Date(val.to).getTime()
+    ) {
       ctx.addIssue({
         code: "custom",
         message: "from must be on or before to",
@@ -59,7 +67,7 @@ export type InsightsBucket = {
   end: string;
   distanceMeters: number;
   runCount: number;
-  /** Only meaningful when grain is week; months are always no_goal. */
+  /** Only meaningful when grain is week; day/month are always no_goal. */
   goalStatus: "hit" | "missed" | "no_goal";
 };
 
@@ -68,7 +76,7 @@ export type InsightsOverview = {
   to: string;
   previousFrom: string;
   previousTo: string;
-  grain: "week" | "month";
+  grain: InsightsGrain;
   totals: {
     distanceMeters: number;
     durationSeconds: number;

@@ -46,17 +46,19 @@ insightsRoutes.get("/week", async (c) => {
 });
 
 insightsRoutes.get("/overview", async (c) => {
-  const { from, to } = c.req.query();
+  const { from, to, grain } = c.req.query();
 
   try {
     const query = overviewQuerySchema.parse({
       from: from || undefined,
       to: to || undefined,
+      grain: grain || undefined,
     });
     const user = c.get("user")!;
     const overview = await getInsightsOverview(user.id, {
       from: query.from,
       to: query.to,
+      grain: query.grain,
     });
     return c.json(overview);
   } catch (err) {

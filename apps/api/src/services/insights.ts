@@ -1,5 +1,6 @@
 import type {
   InsightsBucket,
+  InsightsGrain,
   InsightsOverview,
   OverviewQuery,
   SummaryQuery,
@@ -46,7 +47,9 @@ type RunRow = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-/** Ranges longer than this use month buckets. */
+/** Auto grain: day if range ≤ this many days. */
+const DAY_GRAIN_MAX_DAYS = 14;
+/** Auto grain: week if range ≤ this many days, else month. */
 const WEEK_GRAIN_MAX_DAYS = 42;
 
 function aggregateRuns(rows: RunRow[]): PeriodTotals {
@@ -139,8 +142,11 @@ function periodLengthDays(from: Date, to: Date): number {
   return Math.floor((end - start) / DAY_MS) + 1;
 }
 
-export function pickGrain(from: Date, to: Date): "week" | "month" {
-  return periodLengthDays(from, to) <= WEEK_GRAIN_MAX_DAYS ? "week" : "month";
+export function pickGrain(from: Date, to: Date): InsightsGrain {
+  const days = periodLengthDays(from, to);
+  if (days <= DAY_GRAIN_MAX_DAYS) return "day";
+  if (days <= WEEK_GRAIN_MAX_DAYS) return "week";
+  return "month";
 }
 
 export async function getSummary(
@@ -277,6 +283,36 @@ function filterRowsInRange(rows: RunRow[], from: Date, to: Date): RunRow[] {
   return rows.filter((r) => r.startedAt >= from && r.startedAt <= to);
 }
 
+function buildDayBuckets(
+  rows: RunRow[],
+  from: Date,
+  to: Date,
+): InsightsBucket[] {
+  const buckets: InsightsBucket[] = [];
+  const start = Date.UTC(
+    from.getUTCFullYear(),
+    from.getUTCMonth(),
+    from.getUTCDate(),
+  );
+  const end = Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate());
+
+  for (let t = start; t <= end; t += DAY_MS) {
+    const dayStart = new Date(t);
+    const dayEnd = new Date(t + DAY_MS - 1);
+    const dayRows = filterRowsInRange(rows, dayStart, dayEnd);
+    const totals = aggregateRuns(dayRows);
+    buckets.push({
+      start: dayStart.toISOString(),
+      end: dayEnd.toISOString(),
+      distanceMeters: totals.totalDistanceMeters,
+      runCount: totals.runCount,
+      goalStatus: "no_goal",
+    });
+  }
+
+  return buckets;
+}
+
 function buildWeekBuckets(
   rows: RunRow[],
   from: Date,
@@ -336,6 +372,21 @@ function buildMonthBuckets(rows: RunRow[], from: Date, to: Date): InsightsBucket
   return buckets;
 }
 
+function buildBuckets(
+  grain: InsightsGrain,
+  rows: RunRow[],
+  from: Date,
+  to: Date,
+  weekStartsOn: number,
+  goal: WeeklyGoalRecord | null,
+): InsightsBucket[] {
+  if (grain === "day") return buildDayBuckets(rows, from, to);
+  if (grain === "week") {
+    return buildWeekBuckets(rows, from, to, weekStartsOn, goal);
+  }
+  return buildMonthBuckets(rows, from, to);
+}
+
 function summarizeGoalsFromWeeks(
   rows: RunRow[],
   from: Date,
@@ -392,6 +443,7 @@ export async function getInsightsOverview(
     now?: Date;
     from?: string;
     to?: string;
+    grain?: InsightsGrain;
   } = {},
 ): Promise<InsightsOverview> {
   const now = options.now ?? new Date();
@@ -400,7 +452,7 @@ export async function getInsightsOverview(
     now,
   );
   const prev = previousPeriodBounds(currentFrom, currentTo);
-  const grain = pickGrain(currentFrom, currentTo);
+  const grain = options.grain ?? pickGrain(currentFrom, currentTo);
 
   const goal = await getCurrentGoal(userId);
   const weekStartsOn = goal?.weekStartsOn ?? 1;
@@ -413,17 +465,14 @@ export async function getInsightsOverview(
   const current = aggregateRuns(currentRows);
   const previous = aggregateRuns(previousRows);
 
-  const buckets =
-    grain === "week"
-      ? buildWeekBuckets(
-          currentRows,
-          currentFrom,
-          currentTo,
-          weekStartsOn,
-          goal,
-        )
-      : buildMonthBuckets(currentRows, currentFrom, currentTo);
-
+  const buckets = buildBuckets(
+    grain,
+    currentRows,
+    currentFrom,
+    currentTo,
+    weekStartsOn,
+    goal,
+  );
   const goals = summarizeGoalsFromWeeks(
     currentRows,
     currentFrom,

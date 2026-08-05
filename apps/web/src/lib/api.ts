@@ -58,10 +58,15 @@ export function getWeekProgress(at?: string) {
   return apiFetch<WeekProgress>(`/insights/week${qs}`);
 }
 
-export function getInsightsOverview(from?: string, to?: string) {
+export function getInsightsOverview(
+  from?: string,
+  to?: string,
+  grain?: "day" | "week" | "month",
+) {
   const params = new URLSearchParams();
   if (from) params.set("from", from);
   if (to) params.set("to", to);
+  if (grain) params.set("grain", grain);
   const qs = params.toString();
   return apiFetch<InsightsOverview>(
     `/insights/overview${qs ? `?${qs}` : ""}`,
