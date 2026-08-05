@@ -1,5 +1,13 @@
 const apiBaseUrl = import.meta.env.VITE_API_URL ?? "http://localhost:8787";
 
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  account_not_linked:
+    "This Google account matches an existing email/password user. Sign in with email first, or try Google again after accounts can be linked.",
+  unable_to_link_account:
+    "Could not link this Google account. Sign in with email and password instead.",
+  signup_disabled: "New sign-ups with Google are disabled.",
+};
+
 export function oauthErrorFromSearch(search: string): string | null {
   const params = new URLSearchParams(
     search.startsWith("?") ? search.slice(1) : search,
@@ -8,7 +16,7 @@ export function oauthErrorFromSearch(search: string): string | null {
   if (description) return description;
   const error = params.get("error")?.trim();
   if (!error) return null;
-  return error.replaceAll("_", " ");
+  return OAUTH_ERROR_MESSAGES[error] ?? error.replaceAll("_", " ");
 }
 
 export function socialCallbackUrls(input: {

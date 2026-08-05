@@ -24,6 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { ACTIVITY_LABELS } from "@/lib/activity";
 import { createRun, updateRun } from "@/lib/api";
 import { formatPace } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -47,14 +48,6 @@ function toDatetimeLocalValue(date: Date): string {
   const pad = (n: number) => n.toString().padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
-
-export const ACTIVITY_LABELS: Record<ActivityType, string> = {
-  run: "Run",
-  walk: "Walk",
-  trail: "Trail",
-  treadmill: "Treadmill",
-  race: "Race",
-};
 
 type LogRunDialogProps = {
   open: boolean;

@@ -23,6 +23,9 @@ export const auth = betterAuth({
     accountLinking: {
       enabled: true,
       trustedProviders: ["google"],
+      // Email/password signup does not verify email. Without this, Google
+      // sign-in for the same address fails with account_not_linked.
+      requireLocalEmailVerified: false,
     },
   },
   ...(socialProviders ? { socialProviders } : {}),

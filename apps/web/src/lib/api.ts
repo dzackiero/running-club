@@ -33,12 +33,28 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 export type { RunRecord, WeeklyGoalRecord, WeekProgress };
 
-export function listRuns(limit = 10) {
-  return apiFetch<RunRecord[]>(`/runs?limit=${limit}`);
+export type ListRunsOptions = {
+  limit?: number;
+  from?: string;
+  to?: string;
+};
+
+export function listRuns(options: ListRunsOptions = {}) {
+  const params = new URLSearchParams();
+  if (options.limit != null) params.set("limit", String(options.limit));
+  if (options.from) params.set("from", options.from);
+  if (options.to) params.set("to", options.to);
+  const qs = params.toString();
+  return apiFetch<RunRecord[]>(`/runs${qs ? `?${qs}` : ""}`);
 }
 
-export function getWeekProgress() {
-  return apiFetch<WeekProgress>("/insights/week");
+export function getRun(id: string) {
+  return apiFetch<RunRecord>(`/runs/${id}`);
+}
+
+export function getWeekProgress(at?: string) {
+  const qs = at ? `?at=${encodeURIComponent(at)}` : "";
+  return apiFetch<WeekProgress>(`/insights/week${qs}`);
 }
 
 export function getCurrentGoal() {

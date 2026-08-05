@@ -129,4 +129,21 @@ describe("insights service", () => {
     expect(progress.progress.durationRatio).toBeNull();
     expect(progress.progress.runCountRatio).toBeNull();
   });
+
+  it("getWeekProgress can target a past week via now", async () => {
+    await upsertCurrentGoal(weekUserId, {
+      weekStartsOn: 1,
+      targetDistanceMeters: 20000,
+    });
+
+    const progress = await getWeekProgress(
+      weekUserId,
+      new Date("2026-07-30T12:00:00.000Z"),
+    );
+
+    expect(progress.weekStart).toBe("2026-07-27T00:00:00.000Z");
+    expect(progress.weekEnd).toBe("2026-08-02T23:59:59.999Z");
+    expect(progress.totals.distanceMeters).toBe(9999);
+    expect(progress.totals.runCount).toBe(1);
+  });
 });

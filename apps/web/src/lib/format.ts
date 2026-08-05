@@ -53,6 +53,62 @@ export function formatProgress(ratio: number | null): string {
   return `${Math.round(ratio * 100)}%`;
 }
 
+/** UTC week bounds matching the API (`weekStartsOn`: 0 = Sun … 6 = Sat). */
+export function getWeekBounds(
+  now: Date,
+  weekStartsOn: number,
+): { weekStart: Date; weekEnd: Date } {
+  const day = now.getUTCDay();
+  const daysSinceStart = (day - weekStartsOn + 7) % 7;
+  const weekStart = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() - daysSinceStart,
+    ),
+  );
+  const weekEnd = new Date(weekStart);
+  weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+  weekEnd.setUTCHours(23, 59, 59, 999);
+  return { weekStart, weekEnd };
+}
+
+export function weekBoundsForOffset(
+  weekOffset: number,
+  weekStartsOn: number,
+  now: Date = new Date(),
+): { weekStart: Date; weekEnd: Date } {
+  const anchor = new Date(now);
+  anchor.setUTCDate(anchor.getUTCDate() + weekOffset * 7);
+  return getWeekBounds(anchor, weekStartsOn);
+}
+
+/** Short range for week nav, e.g. `Aug 3 – 9` or `Jul 28 – Aug 3`. */
+export function formatWeekRange(weekStart: Date, weekEnd: Date): string {
+  const startMonth = weekStart.toLocaleDateString(undefined, {
+    month: "short",
+    timeZone: "UTC",
+  });
+  const endMonth = weekEnd.toLocaleDateString(undefined, {
+    month: "short",
+    timeZone: "UTC",
+  });
+  const startDay = weekStart.getUTCDate();
+  const endDay = weekEnd.getUTCDate();
+  if (startMonth === endMonth) {
+    return `${startMonth} ${startDay} – ${endDay}`;
+  }
+  return `${startMonth} ${startDay} – ${endMonth} ${endDay}`;
+}
+
+/** Year label for a week; `2025 – 2026` when the range crosses New Year. */
+export function formatWeekYear(weekStart: Date, weekEnd: Date): string {
+  const startYear = weekStart.getUTCFullYear();
+  const endYear = weekEnd.getUTCFullYear();
+  if (startYear === endYear) return String(startYear);
+  return `${startYear} – ${endYear}`;
+}
+
 export const WEEKDAY_OPTIONS = [
   { value: 0, label: "Sunday" },
   { value: 1, label: "Monday" },

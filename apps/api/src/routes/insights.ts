@@ -1,4 +1,8 @@
-import { errorCodes, summaryQuerySchema } from "@running-club/shared";
+import {
+  errorCodes,
+  summaryQuerySchema,
+  weekQuerySchema,
+} from "@running-club/shared";
 import { Hono } from "hono";
 import { ZodError } from "zod";
 import type { AppEnv } from "../app";
@@ -24,7 +28,18 @@ insightsRoutes.get("/summary", async (c) => {
 });
 
 insightsRoutes.get("/week", async (c) => {
-  const user = c.get("user")!;
-  const progress = await getWeekProgress(user.id);
-  return c.json(progress);
+  const { at } = c.req.query();
+
+  try {
+    const query = weekQuerySchema.parse({ at: at || undefined });
+    const user = c.get("user")!;
+    const now = query.at ? new Date(query.at) : new Date();
+    const progress = await getWeekProgress(user.id, now);
+    return c.json(progress);
+  } catch (err) {
+    if (err instanceof ZodError) {
+      return jsonError(c, 400, errorCodes.VALIDATION, err.message);
+    }
+    throw err;
+  }
 });

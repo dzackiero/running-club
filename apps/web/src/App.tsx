@@ -6,6 +6,7 @@ import { Connect } from "./pages/Connect";
 import { Consent } from "./pages/Consent";
 import { Goal } from "./pages/Goal";
 import { Home } from "./pages/Home";
+import { RunDetail } from "./pages/RunDetail";
 import { Settings } from "./pages/Settings";
 import { SignIn } from "./pages/SignIn";
 import { SignUp } from "./pages/SignUp";
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/consent" element={<Consent />} />
           <Route element={<RequireAuth />}>
             <Route index element={<Home />} />
+            <Route path="/runs/:id" element={<RunDetail />} />
             <Route path="/goal" element={<Goal />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/connect" element={<Connect />} />

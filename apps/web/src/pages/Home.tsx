@@ -1,19 +1,9 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import {
-  Footprints,
-  MoreVertical,
-  Mountain,
-  SportShoe,
-  Trophy,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
-import {
-  activityTypes,
-  weeklyGoalHasTargets,
-  type ActivityType,
-} from "@running-club/shared";
-import { ACTIVITY_LABELS, LogRunDialog } from "@/components/LogRunDialog";
+import { weeklyGoalHasTargets } from "@running-club/shared";
+import { LogRunDialog } from "@/components/LogRunDialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
+import { ActivityIcon, activityLabel } from "@/lib/activity";
 import {
   deleteRun,
   getWeekProgress,
@@ -38,6 +29,9 @@ import {
   formatKm,
   formatPace,
   formatProgress,
+  formatWeekRange,
+  formatWeekYear,
+  weekBoundsForOffset,
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -59,36 +53,58 @@ function ProgressBar({ ratio }: { ratio: number | null }) {
   );
 }
 
-function WeekSnapshot({ progress }: { progress: WeekProgress }) {
-  const { totals, goal, progress: ratios } = progress;
+function weekTitle(weekOffset: number): string | null {
+  if (weekOffset === 0) return "This week";
+  if (weekOffset === -1) return "Last week";
+  return null;
+}
 
-  if (!weeklyGoalHasTargets(goal)) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        No weekly goal set.{" "}
-        <Link
-          to="/goal"
-          className="font-medium text-primary underline-offset-4 hover:underline"
-        >
-          Set a goal
-        </Link>{" "}
-        to track progress.
-      </p>
-    );
-  }
+function WeekSnapshot({
+  progress,
+  weekOffset,
+  weekStart,
+  weekEnd,
+  loading,
+  onPrevWeek,
+  onNextWeek,
+}: {
+  progress: WeekProgress | null;
+  weekOffset: number;
+  weekStart: Date;
+  weekEnd: Date;
+  loading: boolean;
+  onPrevWeek: () => void;
+  onNextWeek: () => void;
+}) {
+  const totals = progress?.totals ?? {
+    distanceMeters: 0,
+    durationSeconds: 0,
+    runCount: 0,
+  };
+  const goal = progress?.goal ?? null;
+  const ratios = progress?.progress ?? {
+    distanceRatio: null,
+    durationRatio: null,
+    runCountRatio: null,
+  };
+  const hasGoal = weeklyGoalHasTargets(goal);
+  const year = formatWeekYear(weekStart, weekEnd);
+  const range = formatWeekRange(weekStart, weekEnd);
+  const title = weekTitle(weekOffset);
 
-  const hasDistance = goal!.targetDistanceMeters != null;
-  const hasDuration = goal!.targetDurationSeconds != null;
-  const hasCount = goal!.targetRunCount != null;
+  const hasDistance = goal?.targetDistanceMeters != null;
+  const hasDuration = goal?.targetDurationSeconds != null;
+  const hasCount = goal?.targetRunCount != null;
 
-  const primaryRatio =
-    (hasDistance ? ratios.distanceRatio : null) ??
-    (hasDuration ? ratios.durationRatio : null) ??
-    ratios.runCountRatio;
+  const primaryRatio = hasGoal
+    ? ((hasDistance ? ratios.distanceRatio : null) ??
+      (hasDuration ? ratios.durationRatio : null) ??
+      ratios.runCountRatio)
+    : null;
 
   const sideLines: Array<{ key: string; text: ReactNode }> = [];
 
-  if (hasDistance) {
+  if (hasGoal && hasDistance) {
     sideLines.push({
       key: "distance",
       text: (
@@ -99,7 +115,7 @@ function WeekSnapshot({ progress }: { progress: WeekProgress }) {
       ),
     });
   }
-  if (hasDuration) {
+  if (hasGoal && hasDuration) {
     sideLines.push({
       key: "duration",
       text: (
@@ -111,7 +127,7 @@ function WeekSnapshot({ progress }: { progress: WeekProgress }) {
       ),
     });
   }
-  if (hasCount) {
+  if (hasGoal && hasCount) {
     sideLines.push({
       key: "count",
       text: (
@@ -123,10 +139,25 @@ function WeekSnapshot({ progress }: { progress: WeekProgress }) {
     });
   }
 
+  if (!hasGoal) {
+    sideLines.push({
+      key: "duration",
+      text: formatDuration(totals.durationSeconds),
+    });
+    sideLines.push({
+      key: "count",
+      text: (
+        <>
+          {totals.runCount} {totals.runCount === 1 ? "run" : "runs"}
+        </>
+      ),
+    });
+  }
+
   let heroValue: ReactNode;
   let heroUnit: string | null = null;
 
-  if (hasDistance) {
+  if (!hasGoal || hasDistance) {
     heroValue = formatKm(totals.distanceMeters);
     heroUnit = "km";
   } else if (hasDuration) {
@@ -138,54 +169,86 @@ function WeekSnapshot({ progress }: { progress: WeekProgress }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            This week
+      <div className="flex items-center justify-between gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={onPrevWeek}
+          aria-label="Previous week"
+        >
+          <ChevronLeft />
+        </Button>
+        <div className="min-w-0 text-center">
+          <p className="text-xs font-semibold tracking-wide text-primary tabular-nums">
+            {year}
           </p>
-          <p className="stat-hero mt-1 text-foreground">
-            {heroValue}
-            {heroUnit ? (
-              <span className="ml-1 text-2xl font-semibold text-muted-foreground">
-                {heroUnit}
-              </span>
-            ) : null}
+          {title ? (
+            <p className="text-sm font-medium text-foreground">{title}</p>
+          ) : null}
+          <p
+            className={cn(
+              "tabular-nums text-muted-foreground",
+              title ? "text-xs" : "text-sm font-medium text-foreground",
+            )}
+          >
+            {range}
           </p>
         </div>
-        {sideLines.length > 0 ? (
-          <div className="text-right text-sm text-muted-foreground tabular-nums">
-            {sideLines.map((line) => (
-              <p key={line.key}>{line.text}</p>
-            ))}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={onNextWeek}
+          disabled={weekOffset >= 0}
+          aria-label="Next week"
+        >
+          <ChevronRight />
+        </Button>
+      </div>
+
+      <div
+        className={cn(
+          "space-y-3 transition-opacity duration-150",
+          loading ? "opacity-50" : "opacity-100",
+        )}
+      >
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="stat-hero mt-1 text-foreground">
+              {heroValue}
+              {heroUnit ? (
+                <span className="ml-1 text-2xl font-semibold text-muted-foreground">
+                  {heroUnit}
+                </span>
+              ) : null}
+            </p>
           </div>
+          {sideLines.length > 0 ? (
+            <div className="text-right text-sm text-muted-foreground tabular-nums">
+              {sideLines.map((line) => (
+                <p key={line.key}>{line.text}</p>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        {hasGoal ? (
+          <ProgressBar ratio={primaryRatio} />
+        ) : weekOffset === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No weekly goal set.{" "}
+            <Link
+              to="/goal"
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Set a goal
+            </Link>{" "}
+            to track progress.
+          </p>
         ) : null}
       </div>
-      <ProgressBar ratio={primaryRatio} />
     </div>
   );
-}
-
-function ActivityIcon({ type }: { type: string }) {
-  const className = "size-4 text-primary";
-  switch (type) {
-    case "run":
-      return <SportShoe className={className} aria-hidden />;
-    case "walk":
-      return <Footprints className={className} aria-hidden />;
-    case "trail":
-      return <Mountain className={className} aria-hidden />;
-    case "race":
-      return <Trophy className={className} aria-hidden />;
-    default:
-      return <SportShoe className={className} aria-hidden />;
-  }
-}
-
-function activityLabel(type: string): string {
-  if (activityTypes.includes(type as ActivityType)) {
-    return ACTIVITY_LABELS[type as ActivityType];
-  }
-  return type;
 }
 
 function RunRow({
@@ -215,56 +278,95 @@ function RunRow({
   }
 
   return (
-    <li
-      className={cn(
-        "grid items-center gap-x-3 gap-y-2 border-b border-border py-3.5 text-sm",
-        "grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[6.5rem_minmax(0,1.4fr)_4.5rem_5rem_4rem_2rem]",
-      )}
-    >
-      <div className="min-w-0">
-        <p className="font-medium text-foreground tabular-nums">{date}</p>
-        <p className="text-xs text-muted-foreground">{weekday}</p>
-      </div>
+    <li className="border-b border-border py-3.5 text-sm">
+      <div className="flex items-start gap-1">
+        <Link
+          to={`/runs/${run.id}`}
+          className="min-w-0 flex-1 rounded-md outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label={`View ${activityLabel(run.activityType)} on ${date}`}
+        >
+          {/* Mobile / tablet: stacked row */}
+          <div className="flex gap-2.5 p-1 md:hidden">
+            <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-secondary">
+              <ActivityIcon type={run.activityType} />
+            </span>
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="truncate font-medium text-foreground">
+                  {activityLabel(run.activityType)}
+                </p>
+                <p className="shrink-0 font-medium tabular-nums text-foreground">
+                  {formatKm(run.distanceMeters)}{" "}
+                  <span className="font-normal text-muted-foreground">km</span>
+                </p>
+              </div>
+              <p className="truncate text-xs text-muted-foreground">
+                {weekday} · {date}
+                {run.notes ? ` · ${run.notes}` : null}
+              </p>
+              <p className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums text-muted-foreground">
+                <span className="font-[family-name:var(--font-stat)] text-sm font-bold text-foreground">
+                  {formatPace(run.avgPaceSecPerKm)}
+                </span>
+                <span>{formatDurationClock(run.durationSeconds)}</span>
+              </p>
+            </div>
+          </div>
 
-      <div className="col-span-2 flex min-w-0 items-start gap-2.5 sm:col-span-1">
-        <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-secondary">
-          <ActivityIcon type={run.activityType} />
-        </span>
-        <div className="min-w-0">
-          <p className="truncate font-medium text-foreground">
-            {activityLabel(run.activityType)}
-          </p>
-          {run.notes ? (
-            <p className="truncate text-xs text-muted-foreground">{run.notes}</p>
-          ) : (
-            <p className="text-xs text-muted-foreground capitalize">
-              {run.source}
+          {/* Desktop: columns */}
+          <div
+            className={cn(
+              "hidden items-center gap-3 p-1 md:grid",
+              "md:grid-cols-[5.5rem_minmax(0,1fr)_4.25rem_5rem_4rem]",
+            )}
+          >
+            <div className="min-w-0">
+              <p className="font-medium text-foreground tabular-nums">{date}</p>
+              <p className="text-xs text-muted-foreground">{weekday}</p>
+            </div>
+
+            <div className="flex min-w-0 items-start gap-2.5">
+              <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-secondary">
+                <ActivityIcon type={run.activityType} />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate font-medium text-foreground">
+                  {activityLabel(run.activityType)}
+                </p>
+                {run.notes ? (
+                  <p className="truncate text-xs text-muted-foreground">
+                    {run.notes}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground capitalize">
+                    {run.source}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <p className="font-medium tabular-nums">
+              {formatKm(run.distanceMeters)}{" "}
+              <span className="font-normal text-muted-foreground">km</span>
             </p>
-          )}
-        </div>
-      </div>
 
-      <p className="text-right font-medium tabular-nums sm:text-left">
-        {formatKm(run.distanceMeters)}{" "}
-        <span className="font-normal text-muted-foreground">km</span>
-      </p>
+            <p className="font-[family-name:var(--font-stat)] text-base font-bold tracking-tight tabular-nums">
+              {formatPace(run.avgPaceSecPerKm)}
+            </p>
 
-      <p className="hidden font-[family-name:var(--font-stat)] text-base font-bold tracking-tight tabular-nums sm:block">
-        {formatPace(run.avgPaceSecPerKm)}
-      </p>
+            <p className="tabular-nums text-muted-foreground">
+              {formatDurationClock(run.durationSeconds)}
+            </p>
+          </div>
+        </Link>
 
-      <p className="hidden tabular-nums text-muted-foreground sm:block">
-        {formatDurationClock(run.durationSeconds)}
-      </p>
-
-      <div className="flex justify-end">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               type="button"
               variant="ghost"
               size="icon-sm"
-              className="text-muted-foreground"
+              className="mt-1 shrink-0 text-muted-foreground"
               aria-label="Run actions"
               disabled={deleting}
             >
@@ -272,6 +374,9 @@ function RunRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link to={`/runs/${run.id}`}>View details</Link>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onEdit(run)}>Edit</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onClick={handleDelete}>
@@ -280,46 +385,65 @@ function RunRow({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-
-      <div className="col-span-2 flex justify-between gap-3 text-xs tabular-nums text-muted-foreground sm:hidden">
-        <span className="font-[family-name:var(--font-stat)] text-sm font-bold text-foreground">
-          {formatPace(run.avgPaceSecPerKm)}
-        </span>
-        <span>{formatDurationClock(run.durationSeconds)}</span>
-      </div>
     </li>
   );
 }
 
 export function Home() {
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [weekStartsOn, setWeekStartsOn] = useState(1);
   const [runs, setRuns] = useState<RunRecord[]>([]);
   const [week, setWeek] = useState<WeekProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [logOpen, setLogOpen] = useState(false);
   const [editingRun, setEditingRun] = useState<RunRecord | null>(null);
+  const requestId = useRef(0);
+
+  const bounds = useMemo(
+    () => weekBoundsForOffset(weekOffset, weekStartsOn),
+    [weekOffset, weekStartsOn],
+  );
 
   const refresh = useCallback(() => {
-    return Promise.all([listRuns(10), getWeekProgress()])
-      .then(([runList, weekProgress]) => {
-        setRuns(runList);
+    const id = ++requestId.current;
+    const { weekStart, weekEnd } = weekBoundsForOffset(weekOffset, weekStartsOn);
+    const from = weekStart.toISOString();
+    const to = weekEnd.toISOString();
+
+    return Promise.all([
+      getWeekProgress(from),
+      listRuns({ limit: 50, from, to }),
+    ])
+      .then(([weekProgress, runList]) => {
+        if (id !== requestId.current) return;
         setWeek(weekProgress);
+        setWeekStartsOn(weekProgress.goal?.weekStartsOn ?? 1);
+        setRuns(runList);
         setError(null);
       })
-      .catch((err) =>
-        setError(err instanceof Error ? err.message : "Failed to load"),
-      );
-  }, []);
+      .catch((err) => {
+        if (id !== requestId.current) return;
+        setError(err instanceof Error ? err.message : "Failed to load");
+      });
+  }, [weekOffset, weekStartsOn]);
 
   useEffect(() => {
-    refresh().finally(() => setLoading(false));
+    let active = true;
+    setLoading(true);
+    refresh().finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
   }, [refresh]);
 
-  if (loading) {
+  if (loading && !week) {
     return <p className="text-sm text-muted-foreground">Loading…</p>;
   }
 
-  if (error) {
+  if (error && !week) {
     return (
       <Alert variant="destructive">
         <AlertDescription>{error}</AlertDescription>
@@ -343,13 +467,26 @@ export function Home() {
             Log run
           </Button>
         </div>
-        {week ? <WeekSnapshot progress={week} /> : null}
+        <WeekSnapshot
+          progress={week}
+          weekOffset={weekOffset}
+          weekStart={bounds.weekStart}
+          weekEnd={bounds.weekEnd}
+          loading={loading}
+          onPrevWeek={() => setWeekOffset((o) => o - 1)}
+          onNextWeek={() => setWeekOffset((o) => Math.min(0, o + 1))}
+        />
       </div>
 
-      <div>
+      <div
+        className={cn(
+          "transition-opacity duration-150",
+          loading ? "opacity-50" : "opacity-100",
+        )}
+      >
         <div className="mb-2 flex items-baseline justify-between gap-3">
           <h2 className="text-xs font-semibold tracking-wide text-primary uppercase">
-            Recent runs
+            {weekOffset === 0 ? "This week’s runs" : "Runs"}
           </h2>
           <Link
             to="/goal"
@@ -361,18 +498,24 @@ export function Home() {
         <Separator className="mb-1" />
         {runs.length === 0 ? (
           <p className="pt-4 text-sm text-muted-foreground">
-            No runs yet.{" "}
-            <button
-              type="button"
-              className="font-medium text-primary underline-offset-4 hover:underline"
-              onClick={() => {
-                setEditingRun(null);
-                setLogOpen(true);
-              }}
-            >
-              Log your first run
-            </button>{" "}
-            to get started.
+            {weekOffset === 0 ? (
+              <>
+                No runs yet.{" "}
+                <button
+                  type="button"
+                  className="font-medium text-primary underline-offset-4 hover:underline"
+                  onClick={() => {
+                    setEditingRun(null);
+                    setLogOpen(true);
+                  }}
+                >
+                  Log your first run
+                </button>{" "}
+                to get started.
+              </>
+            ) : (
+              "No runs this week."
+            )}
           </p>
         ) : (
           <ul className="list-none p-0">
