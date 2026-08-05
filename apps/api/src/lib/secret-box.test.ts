@@ -13,4 +13,11 @@ describe("secret-box", () => {
   it("returns a short hint for UI", () => {
     expect(secretHint("140kfhot88gm2zacwcck7ku0e")).toBe("ku0e");
   });
+
+  it("fails closed when the wrapping secret changed", () => {
+    const sealed = encryptSecret("140kfhot88gm2zacwcck7ku0e", secret);
+    expect(() => decryptSecret(sealed, `${secret}-rotated`)).toThrow(
+      /Unable to decrypt secret/,
+    );
+  });
 });

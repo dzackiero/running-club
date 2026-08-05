@@ -37,10 +37,14 @@ export function decryptSecret(payload: string, secret: string): string {
     Buffer.from(ivPart, "base64url"),
   );
   decipher.setAuthTag(Buffer.from(tagPart, "base64url"));
-  return Buffer.concat([
-    decipher.update(Buffer.from(dataPart, "base64url")),
-    decipher.final(),
-  ]).toString("utf8");
+  try {
+    return Buffer.concat([
+      decipher.update(Buffer.from(dataPart, "base64url")),
+      decipher.final(),
+    ]).toString("utf8");
+  } catch {
+    throw new Error("Unable to decrypt secret");
+  }
 }
 
 export function secretHint(value: string): string {

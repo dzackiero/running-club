@@ -8,6 +8,7 @@ import {
   deleteUserIntegration,
   getUserIntegrationSecret,
   getUserIntegrationStatus,
+  IntegrationSecretError,
   markIntegrationSynced,
   upsertUserIntegration,
 } from "../services/integrations";
@@ -58,7 +59,15 @@ integrationsRoutes.delete("/intervals", async (c) => {
 
 integrationsRoutes.post("/intervals/import", async (c) => {
   const user = c.get("user")!;
-  const apiKey = await getUserIntegrationSecret(user.id, "intervals");
+  let apiKey: string | null;
+  try {
+    apiKey = await getUserIntegrationSecret(user.id, "intervals");
+  } catch (err) {
+    if (err instanceof IntegrationSecretError) {
+      return jsonError(c, 409, errorCodes.CONFLICT, err.message);
+    }
+    throw err;
+  }
   if (!apiKey) {
     return jsonError(
       c,

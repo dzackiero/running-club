@@ -2,9 +2,19 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../db/client";
 import { userIntegration } from "../db/schema";
 import { env } from "../env";
+import { logger } from "../lib/logger";
 import { decryptSecret, encryptSecret, secretHint } from "../lib/secret-box";
 
 export type IntegrationProvider = "intervals";
+
+export class IntegrationSecretError extends Error {
+  constructor(
+    message = "Reconnect Intervals.icu — the saved key can’t be unlocked. Paste your API key again on Connect.",
+  ) {
+    super(message);
+    this.name = "IntegrationSecretError";
+  }
+}
 
 export type IntegrationStatus = {
   connected: boolean;
@@ -54,7 +64,11 @@ export async function getUserIntegrationSecret(
     .limit(1);
 
   if (!row) return null;
-  return decryptSecret(row.secretCiphertext, env.BETTER_AUTH_SECRET);
+  try {
+    return decryptSecret(row.secretCiphertext, env.BETTER_AUTH_SECRET);
+  } catch {
+    throw new IntegrationSecretError();
+  }
 }
 
 export async function upsertUserIntegration(
@@ -138,11 +152,28 @@ export async function listIntervalsCredentials(): Promise<
     .from(userIntegration)
     .where(eq(userIntegration.provider, "intervals"));
 
-  return rows.map((row) => ({
-    userId: row.userId,
-    apiKey: decryptSecret(row.secretCiphertext, env.BETTER_AUTH_SECRET),
-    lastSyncedAt: row.lastSyncedAt ?? null,
-  }));
+  const credentials: {
+    userId: string;
+    apiKey: string;
+    lastSyncedAt: Date | null;
+  }[] = [];
+
+  for (const row of rows) {
+    try {
+      credentials.push({
+        userId: row.userId,
+        apiKey: decryptSecret(row.secretCiphertext, env.BETTER_AUTH_SECRET),
+        lastSyncedAt: row.lastSyncedAt ?? null,
+      });
+    } catch {
+      logger.warn(
+        { userId: row.userId, provider: "intervals" },
+        "Skipping Intervals credential that cannot be decrypted",
+      );
+    }
+  }
+
+  return credentials;
 }
 
 export async function deleteUserIntegration(

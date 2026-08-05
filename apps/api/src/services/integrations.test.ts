@@ -1,8 +1,13 @@
+import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { db } from "../db/client";
+import { userIntegration } from "../db/schema";
+import { encryptSecret } from "../lib/secret-box";
 import {
   deleteUserIntegration,
   getUserIntegrationStatus,
   getUserIntegrationSecret,
+  IntegrationSecretError,
   listIntervalsCredentials,
   markIntegrationSynced,
   upsertUserIntegration,
@@ -85,6 +90,37 @@ describe("user integrations", () => {
     expect(afterSync?.lastSyncedAt?.toISOString()).toBe(
       "2026-08-05T10:00:00.000Z",
     );
+
+    await deleteUserIntegration(userId, "intervals");
+  });
+
+  it("rejects a key sealed with a different app secret", async () => {
+    await upsertUserIntegration(
+      userId,
+      "intervals",
+      "140kfhot88gm2zacwcck7ku0e",
+    );
+    await db
+      .update(userIntegration)
+      .set({
+        secretCiphertext: encryptSecret(
+          "140kfhot88gm2zacwcck7ku0e",
+          "other-secret-at-least-32-characters!!",
+        ),
+      })
+      .where(
+        and(
+          eq(userIntegration.userId, userId),
+          eq(userIntegration.provider, "intervals"),
+        ),
+      );
+
+    await expect(getUserIntegrationSecret(userId, "intervals")).rejects.toBeInstanceOf(
+      IntegrationSecretError,
+    );
+    expect(
+      (await listIntervalsCredentials()).some((row) => row.userId === userId),
+    ).toBe(false);
 
     await deleteUserIntegration(userId, "intervals");
   });
