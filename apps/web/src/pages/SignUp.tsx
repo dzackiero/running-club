@@ -1,11 +1,14 @@
 import { type FormEvent, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { authClient } from "@/lib/auth-client";
 import { shouldDeferToOAuthContinue } from "@/lib/oauth-continue";
+import { oauthErrorFromSearch } from "@/lib/social-auth";
 
 export function SignUp() {
   const navigate = useNavigate();
@@ -15,7 +18,9 @@ export function SignUp() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() =>
+    oauthErrorFromSearch(location.search),
+  );
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: FormEvent) {
@@ -50,6 +55,18 @@ export function SignUp() {
         <p className="text-sm text-muted-foreground">
           Create an account to store runs and weekly goals.
         </p>
+      </div>
+
+      <GoogleSignInButton
+        onError={(message) => setError(message || null)}
+      />
+
+      <div className="flex items-center gap-3">
+        <Separator className="flex-1" />
+        <span className="text-xs uppercase tracking-wide text-muted-foreground">
+          or
+        </span>
+        <Separator className="flex-1" />
       </div>
 
       <form onSubmit={onSubmit} className="space-y-4">

@@ -30,6 +30,8 @@ cp .env.example .env
 | `WEB_ORIGIN` | Vite dev server origin (e.g. `http://localhost:5173`) |
 | `API_PUBLIC_URL` | Public URL for OAuth/MCP metadata (usually same as `BETTER_AUTH_URL`) |
 | `VITE_API_URL` | API base URL the browser calls (e.g. `http://localhost:8787`) |
+| `GOOGLE_CLIENT_ID` | Optional. Google OAuth client ID for “Continue with Google” |
+| `GOOGLE_CLIENT_SECRET` | Optional. Google OAuth client secret |
 
 ### 2. Install and database
 
@@ -53,7 +55,39 @@ Run individually: `pnpm --filter @running-club/api dev` or `pnpm --filter @runni
 
 ### 4. Create an account
 
-Open the web app → sign up at `/sign-up`. Use `/goal` to set a weekly target and `/` to view run history (logged via ChatGPT or REST).
+Open the web app → sign up at `/sign-up` (email/password or Google). Use `/goal` to set a weekly target and `/` to view run history (logged via ChatGPT or REST).
+
+### 5. Google sign-in (optional)
+
+Create a Google Cloud **OAuth 2.0 Client ID** (application type **Web application**).
+
+1. [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → your project (or create one) → **APIs & Services** → **Credentials**.
+2. Configure the **OAuth consent screen** if prompted (External is fine for personal use). App name: `Running Club`. Add your Google account as a **test user** while the app is in Testing.
+3. **Create credentials** → **OAuth client ID** → **Web application**.
+
+Fill in:
+
+| Google field | Local value |
+|---|---|
+| Name | `Running Club local` (anything) |
+| Authorized JavaScript origins | `http://localhost:5173` and `http://localhost:8787` |
+| Authorized redirect URIs | `http://localhost:8787/api/auth/callback/google` |
+
+The redirect URI is the **API** origin, not the Vite origin.
+
+Copy **Client ID** and **Client secret** into root `.env`:
+
+```bash
+GOOGLE_CLIENT_ID=....apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=...
+```
+
+Restart the API (`pnpm dev`). Production: add the same two vars on the API service, plus production origins/redirect:
+
+- JS origins: `https://app.yourdomain.com`, `https://api.yourdomain.com`
+- Redirect: `https://api.yourdomain.com/api/auth/callback/google`
+
+(`BETTER_AUTH_URL` must match that API origin.)
 
 ## Connect ChatGPT
 
@@ -132,6 +166,8 @@ BETTER_AUTH_URL=https://api.yourdomain.com
 API_PUBLIC_URL=https://api.yourdomain.com
 WEB_ORIGIN=https://app.yourdomain.com
 PORT=8787
+GOOGLE_CLIENT_ID=....apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=...
 ```
 
 After first deploy, push the schema once (Dokploy shell / one-off):

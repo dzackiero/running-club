@@ -29,6 +29,9 @@ export function Settings() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingWeek, setSavingWeek] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [hasPasswordAccount, setHasPasswordAccount] = useState<boolean | null>(
+    null,
+  );
 
   const [goalSnapshot, setGoalSnapshot] = useState<{
     targetDistanceMeters?: number;
@@ -39,6 +42,23 @@ export function Settings() {
   useEffect(() => {
     if (user?.name) setName(user.name);
   }, [user?.name]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    authClient
+      .listAccounts()
+      .then(({ data, error }) => {
+        if (error || !data) {
+          setHasPasswordAccount(true);
+          return;
+        }
+        setHasPasswordAccount(
+          data.some((account) => account.providerId === "credential"),
+        );
+      })
+      .catch(() => setHasPasswordAccount(true));
+  }, [user]);
 
   useEffect(() => {
     getCurrentGoal()
@@ -219,47 +239,56 @@ export function Settings() {
 
       <Separator />
 
-      <form onSubmit={savePassword} className="space-y-4">
-        <h2 className="text-base font-medium">Password</h2>
+      {hasPasswordAccount === false ? (
         <div className="space-y-2">
-          <Label htmlFor="current-password">Current password</Label>
-          <Input
-            id="current-password"
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-          />
+          <h2 className="text-base font-medium">Password</h2>
+          <p className="text-sm text-muted-foreground">
+            You sign in with Google. There is no password on this account.
+          </p>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="new-password">New password</Label>
-          <Input
-            id="new-password"
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            required
-            autoComplete="new-password"
-            minLength={8}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="confirm-password">Confirm new password</Label>
-          <Input
-            id="confirm-password"
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            autoComplete="new-password"
-            minLength={8}
-          />
-        </div>
-        <Button type="submit" disabled={savingPassword}>
-          {savingPassword ? "Updating…" : "Update password"}
-        </Button>
-      </form>
+      ) : (
+        <form onSubmit={savePassword} className="space-y-4">
+          <h2 className="text-base font-medium">Password</h2>
+          <div className="space-y-2">
+            <Label htmlFor="current-password">Current password</Label>
+            <Input
+              id="current-password"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="new-password">New password</Label>
+            <Input
+              id="new-password"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+              autoComplete="new-password"
+              minLength={8}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirm-password">Confirm new password</Label>
+            <Input
+              id="confirm-password"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              autoComplete="new-password"
+              minLength={8}
+            />
+          </div>
+          <Button type="submit" disabled={savingPassword}>
+            {savingPassword ? "Updating…" : "Update password"}
+          </Button>
+        </form>
+      )}
     </section>
   );
 }

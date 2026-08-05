@@ -34,6 +34,14 @@ const envSchema = z.object({
   BETTER_AUTH_URL: z.string().url(),
   WEB_ORIGIN: z.string().url(),
   API_PUBLIC_URL: z.string().url(),
+  GOOGLE_CLIENT_ID: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().min(1).optional(),
+  ),
+  GOOGLE_CLIENT_SECRET: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().min(1).optional(),
+  ),
   PORT: z.coerce.number().default(8787),
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
