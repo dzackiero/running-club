@@ -41,6 +41,19 @@ describe("createRunSchema", () => {
     expect(parsed.avgHeartRate).toBe(150);
     expect(parsed.activityType).toBe("trail");
   });
+
+  it("accepts intervals source", () => {
+    const parsed = createRunSchema.parse({
+      startedAt: "2026-08-03T06:00:00.000Z",
+      distanceMeters: 5000,
+      durationSeconds: 1800,
+      activityType: "run",
+      source: "intervals",
+      externalId: "i123",
+    });
+    expect(parsed.source).toBe("intervals");
+    expect(parsed.externalId).toBe("i123");
+  });
 });
 
 describe("listRunsQuerySchema", () => {

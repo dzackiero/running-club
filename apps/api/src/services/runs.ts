@@ -182,6 +182,24 @@ export async function updateRun(
   return row ? toRunRecord(row) : null;
 }
 
+export async function upsertImportedRun(
+  userId: string,
+  input: CreateRunServiceInput & { source: string; externalId: string },
+): Promise<{ run: RunRecord; created: boolean }> {
+  const [existing] = await db
+    .select()
+    .from(run)
+    .where(and(eq(run.userId, userId), eq(run.externalId, input.externalId)))
+    .limit(1);
+
+  if (existing) {
+    const updated = await updateRun(userId, existing.id, input);
+    return { run: updated!, created: false };
+  }
+
+  return { run: await createRun(userId, input), created: true };
+}
+
 export async function deleteRun(userId: string, id: string): Promise<boolean> {
   const deleted = await db
     .delete(run)

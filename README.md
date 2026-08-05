@@ -89,6 +89,16 @@ Restart the API (`pnpm dev`). Production: add the same two vars on the API servi
 
 (`BETTER_AUTH_URL` must match that API origin.)
 
+## Intervals.icu import
+
+One-way sync: **Intervals.icu → Cup Run**.
+
+1. Create a personal API key in Intervals.icu **Settings → Developer Settings**.
+2. In Cup Run open **Connect**, paste the key, and save it (stored encrypted per user).
+3. Click **Import now**, or wait — connected accounts sync every **2 hours**.
+
+Runs, walks, trail runs, treadmill/virtual runs, and races from the last 365 days are upserted by Intervals activity id. Strength workouts are skipped.
+
 ## Connect ChatGPT
 
 Add a **remote MCP server** in ChatGPT (Settings → Connectors / MCP or Developer mode):

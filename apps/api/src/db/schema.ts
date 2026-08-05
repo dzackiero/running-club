@@ -210,6 +210,7 @@ export const userRelations = relations(user, ({ many }) => ({
   oauthRefreshTokens: many(oauthRefreshToken),
   oauthAccessTokens: many(oauthAccessToken),
   oauthConsents: many(oauthConsent),
+  integrations: many(userIntegration),
 }));
 
 export const sessionRelations = relations(session, ({ one, many }) => ({
@@ -327,6 +328,39 @@ export const run = pgTable(
     ),
   }),
 );
+
+export const userIntegration = pgTable(
+  "user_integration",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    secretCiphertext: text("secret_ciphertext").notNull(),
+    hint: text("hint"),
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    userProviderUid: uniqueIndex("user_integration_user_provider_uid").on(
+      t.userId,
+      t.provider,
+    ),
+  }),
+);
+
+export const userIntegrationRelations = relations(userIntegration, ({ one }) => ({
+  user: one(user, {
+    fields: [userIntegration.userId],
+    references: [user.id],
+  }),
+}));
 
 export const weeklyGoal = pgTable(
   "weekly_goal",

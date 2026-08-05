@@ -30,7 +30,10 @@ export const createRunSchema = z.object({
     )
     .optional(),
   polyline: z.string().optional(),
-  source: z.enum(["manual", "strava", "import"]).optional().default("manual"),
+  source: z
+    .enum(["manual", "strava", "import", "intervals"])
+    .optional()
+    .default("manual"),
   externalId: z.string().optional(),
 });
 

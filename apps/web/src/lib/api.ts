@@ -22,7 +22,15 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(body || res.statusText);
+    try {
+      const parsed = JSON.parse(body) as { error?: { message?: string } };
+      throw new Error(parsed.error?.message || body || res.statusText);
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        throw new Error(body || res.statusText);
+      }
+      throw err;
+    }
   }
 
   if (res.status === 204) {
@@ -101,5 +109,40 @@ export function updateRun(id: string, body: UpdateRunInput) {
 export function deleteRun(id: string) {
   return apiFetch<void>(`/runs/${id}`, {
     method: "DELETE",
+  });
+}
+
+export type IntervalsImportResult = {
+  imported: number;
+  updated: number;
+  skipped: number;
+};
+
+export type IntervalsStatus = {
+  connected: boolean;
+  hint: string | null;
+  lastSyncedAt: string | null;
+};
+
+export function getIntervalsStatus() {
+  return apiFetch<IntervalsStatus>("/integrations/intervals");
+}
+
+export function saveIntervalsApiKey(apiKey: string) {
+  return apiFetch<IntervalsStatus>("/integrations/intervals", {
+    method: "PUT",
+    body: JSON.stringify({ apiKey }),
+  });
+}
+
+export function disconnectIntervals() {
+  return apiFetch<void>("/integrations/intervals", {
+    method: "DELETE",
+  });
+}
+
+export function importIntervalsActivities() {
+  return apiFetch<IntervalsImportResult>("/integrations/intervals/import", {
+    method: "POST",
   });
 }

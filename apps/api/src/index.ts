@@ -1,6 +1,7 @@
 import { serve } from "@hono/node-server";
 import { app } from "./app";
 import { env } from "./env";
+import { startIntervalsPoller } from "./jobs/intervals-poll";
 import { logger } from "./lib/logger";
 
 serve({ fetch: app.fetch, port: env.PORT }, (info) => {
@@ -8,4 +9,5 @@ serve({ fetch: app.fetch, port: env.PORT }, (info) => {
     { port: info.port, env: process.env.NODE_ENV ?? "development" },
     "API listening",
   );
+  startIntervalsPoller();
 });

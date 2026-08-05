@@ -16,6 +16,7 @@ import { requestLogger } from "./middleware/request-logger";
 import { sessionMiddleware } from "./middleware/session";
 import { goalsRoutes } from "./routes/goals";
 import { insightsRoutes } from "./routes/insights";
+import { integrationsRoutes } from "./routes/integrations";
 import { runsRoutes } from "./routes/runs";
 
 export type AppEnv = {
@@ -109,3 +110,7 @@ app.route("/goals", goalsRoutes);
 app.use("/insights", requireUser);
 app.use("/insights/*", requireUser);
 app.route("/insights", insightsRoutes);
+
+app.use("/integrations", requireUser);
+app.use("/integrations/*", requireUser);
+app.route("/integrations", integrationsRoutes);

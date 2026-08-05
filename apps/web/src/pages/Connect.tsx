@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { IntervalsConnectCard } from "@/components/IntervalsConnectCard";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -43,35 +44,44 @@ export function Connect() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-lg space-y-6">
+    <section className="mx-auto w-full max-w-lg space-y-8">
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Connect</h1>
         <p className="text-sm text-muted-foreground">
-          Log and check runs from ChatGPT or Claude. Same link for both.
+          Bring runs in from Intervals, or log them from chat.
         </p>
       </div>
 
-      <div className="space-y-2">
-        <h2 className="text-sm font-medium">Link</h2>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <code className="block min-w-0 flex-1 break-all rounded-lg bg-secondary px-3 py-2 text-sm text-foreground">
-            {mcpUrl}
-          </code>
-          <Button
-            type="button"
-            variant="outline"
-            className="shrink-0"
-            onClick={copyUrl}
-          >
-            Copy
-          </Button>
-        </div>
-      </div>
+      <IntervalsConnectCard />
 
       <Separator />
 
-      <div className="space-y-3">
-        <div className="flex gap-1 rounded-lg bg-secondary p-1">
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <h2 className="text-base font-medium">Chat</h2>
+          <p className="text-sm text-muted-foreground">
+            Same link for ChatGPT and Claude.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Link</p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <code className="block min-w-0 flex-1 break-all rounded-md bg-secondary px-3 py-2 text-sm text-foreground">
+              {mcpUrl}
+            </code>
+            <Button
+              type="button"
+              variant="outline"
+              className="shrink-0"
+              onClick={copyUrl}
+            >
+              Copy
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex gap-1 rounded-md bg-secondary p-1">
           {(Object.keys(guides) as GuideId[]).map((id) => (
             <button
               key={id}
@@ -79,7 +89,7 @@ export function Connect() {
               className={cn(
                 "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 guide === id
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-background text-foreground"
                   : "text-muted-foreground hover:text-foreground",
               )}
               onClick={() => setGuide(id)}
