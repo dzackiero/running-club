@@ -9,8 +9,8 @@ import type {
   WeekProgress,
   WeeklyGoalRecord,
 } from "@running-club/shared";
-import { weeklyGoalHasTargets } from "@running-club/shared";
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { runningActivityTypes, weeklyGoalHasTargets } from "@running-club/shared";
+import { and, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { db } from "../db/client";
 import { run } from "../db/schema";
 import { avgPaceSecPerKm } from "../lib/pace";
@@ -95,6 +95,7 @@ async function fetchRunsInRange(
     .where(
       and(
         eq(run.userId, userId),
+        inArray(run.activityType, [...runningActivityTypes]),
         gte(run.startedAt, from),
         lte(run.startedAt, to),
       ),
@@ -105,7 +106,12 @@ async function fetchRunStartedAts(userId: string): Promise<Date[]> {
   const rows = await db
     .select({ startedAt: run.startedAt })
     .from(run)
-    .where(eq(run.userId, userId));
+    .where(
+      and(
+        eq(run.userId, userId),
+        inArray(run.activityType, [...runningActivityTypes]),
+      ),
+    );
   return rows.map((row) => row.startedAt);
 }
 

@@ -108,4 +108,21 @@ describe("splitsFromIntervalsStreams", () => {
       500, 500, 500, 500, 500,
     ]);
   });
+
+  it("prefers velocity over a skewed Intervals distance stream", () => {
+    const time = Array.from({ length: 1001 }, (_, i) => i);
+    // Broken device distance: first km takes almost the whole run
+    const distance = time.map((t) => (t < 700 ? t * (1000 / 700) : 1000 + (t - 700)));
+    const velocity = time.map(() => 2); // 2 m/s → 1 km in 500s
+    const splits = splitsFromIntervalsStreams(
+      [
+        { type: "time", data: time },
+        { type: "distance", data: distance },
+        { type: "velocity_smooth", data: velocity },
+      ],
+      2000,
+    );
+    expect(splits[0]?.durationSeconds).toBe(500);
+    expect(splits[1]?.durationSeconds).toBe(500);
+  });
 });

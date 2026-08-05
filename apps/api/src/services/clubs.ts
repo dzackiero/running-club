@@ -12,7 +12,10 @@ import type {
   SendClubPeriodMessageResult,
   UpdateClubInput,
 } from "@running-club/shared";
-import { clubMissMessageTemplates } from "@running-club/shared";
+import {
+  clubMissMessageTemplates,
+  runningActivityTypes,
+} from "@running-club/shared";
 import { and, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { db } from "../db/client";
 import { club, clubMember, clubPeriodResult, run, user } from "../db/schema";
@@ -205,6 +208,7 @@ async function leaderboard(
           .where(
             and(
               inArray(run.userId, memberIds),
+              inArray(run.activityType, [...runningActivityTypes]),
               gte(run.startedAt, from),
               lte(run.startedAt, to),
             ),
@@ -516,7 +520,12 @@ export async function memberDistanceInRange(
     })
     .from(run)
     .where(
-      and(eq(run.userId, userId), gte(run.startedAt, from), lte(run.startedAt, to)),
+      and(
+        eq(run.userId, userId),
+        inArray(run.activityType, [...runningActivityTypes]),
+        gte(run.startedAt, from),
+        lte(run.startedAt, to),
+      ),
     );
   return Number(row?.distanceMeters) || 0;
 }

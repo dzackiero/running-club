@@ -1,4 +1,5 @@
 import type { CreateRunInput, RunStreams } from "@running-club/shared";
+import { isRunningActivityType } from "@running-club/shared";
 import { IntervalsHttpError } from "../integrations/intervals/errors";
 import { mapIntervalsActivityToRun } from "../integrations/intervals/map-activity";
 import type { IntervalsActivity } from "../integrations/intervals/map-activity";
@@ -129,18 +130,19 @@ export async function importFromIntervals(
     if (refetchStreams && client.getStreams) {
       try {
         const rawStreams = await client.getStreams(mapped.externalId);
-        const derived = splitsFromIntervalsStreams(
-          rawStreams,
-          payload.distanceMeters,
+        const streams = withSplitAlgo(
+          downsampleIntervalsStreams(rawStreams),
+          existing?.streams,
         );
-        payload = {
-          ...payload,
-          streams: withSplitAlgo(
-            downsampleIntervalsStreams(rawStreams),
-            existing?.streams,
-          ),
-          splits: derived,
-        };
+        if (isRunningActivityType(payload.activityType)) {
+          const derived = splitsFromIntervalsStreams(
+            rawStreams,
+            payload.distanceMeters,
+          );
+          payload = { ...payload, streams, splits: derived };
+        } else {
+          payload = { ...payload, streams, splits: [] };
+        }
       } catch (err) {
         if (err instanceof IntervalsHttpError && err.status === 429) throw err;
         logger.warn(
@@ -148,6 +150,10 @@ export async function importFromIntervals(
           "Intervals activity streams failed",
         );
       }
+    }
+
+    if (!isRunningActivityType(payload.activityType)) {
+      payload = { ...payload, splits: [] };
     }
 
     const result = await upsertImportedRun(userId, {

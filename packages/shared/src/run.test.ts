@@ -1,5 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { createRunSchema, listRunsQuerySchema } from "./run";
+import {
+  createRunSchema,
+  isRunningActivityType,
+  listRunsQuerySchema,
+} from "./run";
+
+describe("isRunningActivityType", () => {
+  it("includes run-like types and excludes walk", () => {
+    expect(isRunningActivityType("run")).toBe(true);
+    expect(isRunningActivityType("trail")).toBe(true);
+    expect(isRunningActivityType("treadmill")).toBe(true);
+    expect(isRunningActivityType("race")).toBe(true);
+    expect(isRunningActivityType("walk")).toBe(false);
+  });
+});
 
 describe("createRunSchema", () => {
   it("accepts required fields only", () => {

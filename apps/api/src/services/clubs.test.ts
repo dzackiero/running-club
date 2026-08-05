@@ -34,6 +34,8 @@ const msgMutedId = "user_club_msg_muted";
 const funOwnerId = "user_club_fun_owner";
 const funBusyId = "user_club_fun_busy";
 const funLongId = "user_club_fun_long";
+const walkBoardOwnerId = "user_club_walk_board_owner";
+const walkBoardMemberId = "user_club_walk_board_member";
 
 describe("clubs service", () => {
   beforeAll(async () => {
@@ -52,6 +54,8 @@ describe("clubs service", () => {
       funOwnerId,
       funBusyId,
       funLongId,
+      walkBoardOwnerId,
+      walkBoardMemberId,
     ]);
   });
 
@@ -71,6 +75,8 @@ describe("clubs service", () => {
       funOwnerId,
       funBusyId,
       funLongId,
+      walkBoardOwnerId,
+      walkBoardMemberId,
     ]);
   });
 
@@ -110,6 +116,37 @@ describe("clubs service", () => {
 
     const ownerView = await getClub(ownerId, created.id, new Date("2026-08-05T12:00:00.000Z"));
     expect(ownerView.inviteCode).toBe(created.inviteCode);
+  });
+
+  it("excludes walks from club board distance", async () => {
+    const created = await createClub(walkBoardOwnerId, { name: "Run Not Walk" });
+    await joinClub(walkBoardMemberId, created.inviteCode!);
+
+    await createRun(walkBoardOwnerId, {
+      startedAt: "2026-08-04T08:00:00.000Z",
+      distanceMeters: 4000,
+      durationSeconds: 1200,
+      activityType: "run",
+    });
+    await createRun(walkBoardMemberId, {
+      startedAt: "2026-08-04T09:00:00.000Z",
+      distanceMeters: 20000,
+      durationSeconds: 7200,
+      activityType: "walk",
+    });
+
+    const detail = await getClub(
+      walkBoardOwnerId,
+      created.id,
+      new Date("2026-08-05T12:00:00.000Z"),
+    );
+    const ownerRow = detail.week.board.find((row) => row.userId === walkBoardOwnerId);
+    const memberRow = detail.week.board.find(
+      (row) => row.userId === walkBoardMemberId,
+    );
+    expect(ownerRow?.distanceMeters).toBe(4000);
+    expect(memberRow?.distanceMeters).toBe(0);
+    expect(detail.week.board[0]?.userId).toBe(walkBoardOwnerId);
   });
 
   it("restricts owner updates and lets members leave", async () => {

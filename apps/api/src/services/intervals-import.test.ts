@@ -116,7 +116,7 @@ describe("importFromIntervals", () => {
     ]);
     const full = await getRun(userId, run!.id);
     expect(full?.streams?.t.length).toBeGreaterThan(0);
-    expect(full?.streams?.splitAlgo).toBe("km-v1");
+    expect(full?.streams?.splitAlgo).toBe("km-v2");
   });
 
   it("skips stream refetch when summary is unchanged", async () => {
@@ -266,7 +266,7 @@ describe("importFromIntervals", () => {
       500, 500, 500, 500, 500,
     ]);
     const full = await getRun(userId, run!.id);
-    expect(full?.streams?.splitAlgo).toBe("km-v1");
+    expect(full?.streams?.splitAlgo).toBe("km-v2");
   });
 
   it("builds km splits from velocity when distance is missing", async () => {
@@ -297,6 +297,32 @@ describe("importFromIntervals", () => {
       (row) => row.externalId === "i-velocity-splits",
     );
     expect(run?.splits).toEqual([{ distanceMeters: 1000, durationSeconds: 500 }]);
+  });
+
+  it("does not store km splits for walks", async () => {
+    const result = await importFromIntervals(userId, {
+      listActivities: async () => [
+        {
+          id: "i-walk-no-splits",
+          type: "Walk",
+          name: "Morning Walk",
+          start_date: "2026-07-10T00:00:00Z",
+          distance: 2000,
+          moving_time: 1800,
+        },
+      ],
+      getStreams: async () => [
+        { type: "time", data: [0, 500, 1000, 1500, 1800] },
+        { type: "distance", data: [0, 500, 1000, 1500, 2000] },
+        { type: "velocity_smooth", data: [1, 1, 1, 1, 1] },
+      ],
+    });
+    expect(result).toEqual({ imported: 1, updated: 0, skipped: 0 });
+    const walk = (await listRuns(userId, {})).find(
+      (row) => row.externalId === "i-walk-no-splits",
+    );
+    expect(walk?.activityType).toBe("walk");
+    expect(walk?.splits ?? []).toEqual([]);
   });
 
   it("rethrows 429 so sync is not marked complete", async () => {

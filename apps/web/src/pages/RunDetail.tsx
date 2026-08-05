@@ -288,7 +288,7 @@ export function RunDetail() {
         </div>
       ) : null}
 
-      {run.splits && run.splits.length > 0 ? (
+      {run.activityType !== "walk" && run.splits && run.splits.length > 0 ? (
         <div className="space-y-2">
           <h2 className="text-xs font-semibold tracking-wide text-primary uppercase">
             Splits

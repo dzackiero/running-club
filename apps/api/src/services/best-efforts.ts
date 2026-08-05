@@ -1,4 +1,5 @@
 import type { InsightsBestEffortDistance, RunStreams } from "@running-club/shared";
+import { isRunningActivityType } from "@running-club/shared";
 
 export const BEST_EFFORT_TARGETS = [
   { label: "1k" as const, distanceMeters: 1000 },
@@ -16,8 +17,6 @@ export type BestEffortRun = {
   activityType: string;
   streams: RunStreams | null;
 };
-
-const SKIP_ACTIVITY_TYPES = new Set(["walk"]);
 
 export function reconstructDistanceMeters(
   t: number[],
@@ -120,9 +119,7 @@ function effortForRun(
 export function rankBestEfforts(
   runs: BestEffortRun[],
 ): InsightsBestEffortDistance[] {
-  const eligible = runs.filter(
-    (run) => !SKIP_ACTIVITY_TYPES.has(run.activityType),
-  );
+  const eligible = runs.filter((run) => isRunningActivityType(run.activityType));
 
   const distances: InsightsBestEffortDistance[] = [];
   for (const target of BEST_EFFORT_TARGETS) {

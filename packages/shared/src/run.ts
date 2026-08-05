@@ -9,6 +9,19 @@ export const activityTypes = [
 ] as const;
 export type ActivityType = (typeof activityTypes)[number];
 
+/** Activity types that count toward club/goals/Insights/best efforts. */
+export const runningActivityTypes = [
+  "run",
+  "trail",
+  "treadmill",
+  "race",
+] as const;
+export type RunningActivityType = (typeof runningActivityTypes)[number];
+
+export function isRunningActivityType(type: string): boolean {
+  return (runningActivityTypes as readonly string[]).includes(type);
+}
+
 export const runStreamsSchema = z
   .object({
     t: z.array(z.number()).max(250),

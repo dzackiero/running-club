@@ -86,6 +86,34 @@ describe("insights service", () => {
     expect(summary.previousPeriod.avgPaceSecPerKm).toBe(300);
   });
 
+  it("getSummary ignores walks in totals", async () => {
+    const walkOnlyUserId = "user_test_insights_walk_only";
+    await ensureTestUsers([walkOnlyUserId]);
+    try {
+      await createRun(walkOnlyUserId, {
+        startedAt: "2026-08-02T06:00:00.000Z",
+        distanceMeters: 8000,
+        durationSeconds: 4800,
+        activityType: "walk",
+      });
+      await createRun(walkOnlyUserId, {
+        startedAt: "2026-08-03T06:00:00.000Z",
+        distanceMeters: 5000,
+        durationSeconds: 1500,
+        activityType: "run",
+      });
+
+      const summary = await getSummary(walkOnlyUserId, {
+        from: "2026-08-01T00:00:00.000Z",
+        to: "2026-08-07T23:59:59.999Z",
+      });
+      expect(summary.totalDistanceMeters).toBe(5000);
+      expect(summary.runCount).toBe(1);
+    } finally {
+      await deleteTestUsers([walkOnlyUserId]);
+    }
+  });
+
   it("getWeekProgress returns totals and goal ratios for the current UTC week", async () => {
     await upsertCurrentGoal(weekUserId, {
       weekStartsOn: 1,
