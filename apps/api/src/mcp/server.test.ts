@@ -70,6 +70,28 @@ describe("MCP tool handlers", () => {
     expect(runRecord.distanceMeters).toBe(5000);
   });
 
+  it("get_run returns streams while list_runs omits them", async () => {
+    const created = await handleLogRun(userId, {
+      startedAt: "2026-08-03T10:00:00.000Z",
+      distanceMeters: 3000,
+      durationSeconds: 900,
+      activityType: "run",
+      trainingLoad: 40,
+      streams: { t: [0, 30], pace: [300, 298], hr: [140, 142] },
+    });
+    const id = JSON.parse(textContent(created)).id;
+
+    const listed = JSON.parse(
+      textContent(await handleListRuns(userId, { limit: 20 })),
+    );
+    const listRow = listed.find((r: { id: string }) => r.id === id);
+    expect(listRow.streams).toBeNull();
+    expect(listRow.trainingLoad).toBe(40);
+
+    const one = JSON.parse(textContent(await handleGetRun(userId, { id })));
+    expect(one.streams.t).toEqual([0, 30]);
+  });
+
   it("update_run updates run fields", async () => {
     const result = await handleUpdateRun(userId, {
       id: createdRunId,

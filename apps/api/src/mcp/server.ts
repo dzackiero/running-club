@@ -66,7 +66,8 @@ function createRunningClubMcpServer(userId: string): McpServer {
   server.registerTool(
     "list_runs",
     {
-      description: "List runs for the authenticated user",
+      description:
+        "List runs for the authenticated user. Omits pace/HR streams; call get_run for full analysis.",
       inputSchema: listRunsToolSchema.shape,
     },
     (args) => handleListRuns(userId, args),
@@ -75,7 +76,8 @@ function createRunningClubMcpServer(userId: string): McpServer {
   server.registerTool(
     "get_run",
     {
-      description: "Get a single run by id",
+      description:
+        "Get one run by id, including training load, intensity, GAP, HR zones, splits, polyline, and downsampled pace/HR streams when present.",
       inputSchema: runIdToolSchema.shape,
     },
     (args) => handleGetRun(userId, args),
