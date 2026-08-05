@@ -1,5 +1,6 @@
 import type {
   CreateRunInput,
+  InsightsOverview,
   RunRecord,
   UpdateRunInput,
   UpsertWeeklyGoalInput,
@@ -31,7 +32,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export type { RunRecord, WeeklyGoalRecord, WeekProgress };
+export type { RunRecord, WeeklyGoalRecord, WeekProgress, InsightsOverview };
 
 export type ListRunsOptions = {
   limit?: number;
@@ -55,6 +56,16 @@ export function getRun(id: string) {
 export function getWeekProgress(at?: string) {
   const qs = at ? `?at=${encodeURIComponent(at)}` : "";
   return apiFetch<WeekProgress>(`/insights/week${qs}`);
+}
+
+export function getInsightsOverview(from?: string, to?: string) {
+  const params = new URLSearchParams();
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  const qs = params.toString();
+  return apiFetch<InsightsOverview>(
+    `/insights/overview${qs ? `?${qs}` : ""}`,
+  );
 }
 
 export function getCurrentGoal() {

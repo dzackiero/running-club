@@ -26,9 +26,7 @@ export function GuestOnly() {
   }
 
   if (session?.user && continueUrl) {
-    return (
-      <p className="text-sm text-muted-foreground">Taking you back…</p>
-    );
+    return <p className="text-sm text-muted-foreground">Taking you back…</p>;
   }
 
   if (session?.user) {

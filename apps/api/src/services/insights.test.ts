@@ -2,12 +2,20 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { deleteTestUsers, ensureTestUsers } from "../test/users";
 import { upsertCurrentGoal } from "./goals";
 import { createRun } from "./runs";
-import { getSummary, getWeekProgress } from "./insights";
+import { getSummary, getWeekProgress, getInsightsOverview } from "./insights";
 
 const summaryUserId = "user_test_insights_summary";
 const weekUserId = "user_test_insights_week";
 const noGoalUserId = "user_test_insights_no_goal";
-const testUserIds = [summaryUserId, weekUserId, noGoalUserId];
+const overviewUserId = "user_test_insights_overview";
+const overviewMonthUserId = "user_test_insights_overview_month";
+const testUserIds = [
+  summaryUserId,
+  weekUserId,
+  noGoalUserId,
+  overviewUserId,
+  overviewMonthUserId,
+];
 
 describe("insights service", () => {
   beforeAll(async () => {
@@ -145,5 +153,70 @@ describe("insights service", () => {
     expect(progress.weekEnd).toBe("2026-08-02T23:59:59.999Z");
     expect(progress.totals.distanceMeters).toBe(9999);
     expect(progress.totals.runCount).toBe(1);
+  });
+
+  it("getInsightsOverview defaults to this calendar month with week grain", async () => {
+    await upsertCurrentGoal(overviewUserId, {
+      weekStartsOn: 1,
+      targetDistanceMeters: 8000,
+    });
+
+    await createRun(overviewUserId, {
+      startedAt: "2026-08-04T06:00:00.000Z",
+      distanceMeters: 10000,
+      durationSeconds: 3000,
+      activityType: "run",
+    });
+    await createRun(overviewUserId, {
+      startedAt: "2026-08-02T06:00:00.000Z",
+      distanceMeters: 5000,
+      durationSeconds: 1500,
+      activityType: "run",
+    });
+    // Prior equal-length window ≈ July 26–31 for Aug 1–6
+    await createRun(overviewUserId, {
+      startedAt: "2026-07-28T06:00:00.000Z",
+      distanceMeters: 4000,
+      durationSeconds: 1200,
+      activityType: "run",
+    });
+
+    const overview = await getInsightsOverview(overviewUserId, {
+      now: new Date("2026-08-06T12:00:00.000Z"),
+    });
+
+    expect(overview.from).toBe("2026-08-01T00:00:00.000Z");
+    expect(overview.to).toBe("2026-08-06T23:59:59.999Z");
+    expect(overview.grain).toBe("week");
+    expect(overview.buckets.length).toBeGreaterThanOrEqual(1);
+    expect(overview.totals.distanceMeters).toBe(15000);
+    expect(overview.totals.runCount).toBe(2);
+    expect(overview.previous.runCount).toBe(1);
+    expect(overview.sparse).toBe(false);
+    expect(overview.consistency.daysWithRun).toBe(2);
+  });
+
+  it("getInsightsOverview uses month grain for longer ranges", async () => {
+    await createRun(overviewMonthUserId, {
+      startedAt: "2026-06-15T06:00:00.000Z",
+      distanceMeters: 6000,
+      durationSeconds: 1800,
+      activityType: "run",
+    });
+    await createRun(overviewMonthUserId, {
+      startedAt: "2026-08-02T06:00:00.000Z",
+      distanceMeters: 7000,
+      durationSeconds: 2100,
+      activityType: "run",
+    });
+
+    const overview = await getInsightsOverview(overviewMonthUserId, {
+      from: "2026-06-01T00:00:00.000Z",
+      to: "2026-08-06T23:59:59.999Z",
+    });
+
+    expect(overview.grain).toBe("month");
+    expect(overview.buckets).toHaveLength(3);
+    expect(overview.totals.distanceMeters).toBe(13000);
   });
 });

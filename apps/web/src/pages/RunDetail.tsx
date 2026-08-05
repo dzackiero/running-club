@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { LogRunDialog } from "@/components/LogRunDialog";
+import { AppLoading } from "@/components/AppLoading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -98,7 +99,7 @@ export function RunDetail() {
   }
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground">Loading…</p>;
+    return <AppLoading />;
   }
 
   if (error || !run) {
@@ -265,7 +266,7 @@ export function RunDetail() {
                     {formatKm(split.distanceMeters)} km ·{" "}
                     {formatDurationClock(split.durationSeconds)}
                   </span>
-                  <span className="font-[family-name:var(--font-stat)] font-bold text-foreground">
+                  <span className="font-(family-name:--font-stat) font-bold text-foreground">
                     {formatPace(pace)}
                   </span>
                 </li>

@@ -152,7 +152,99 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Running-in-place: lift → swing forward → plant → recover (no rock/rotate) */
+@keyframes app-loading-stride {
+  0% {
+    transform: translate(0, 0) scaleY(1);
+  }
+  18% {
+    transform: translate(2px, -2px) scaleY(0.92);
+  }
+  36% {
+    transform: translate(10px, -14px) scaleY(1.05);
+  }
+  52% {
+    transform: translate(18px, -4px) scaleY(1);
+  }
+  64% {
+    transform: translate(16px, 0) scaleY(0.88);
+  }
+  80% {
+    transform: translate(8px, -1px) scaleY(1);
+  }
+  100% {
+    transform: translate(0, 0) scaleY(1);
+  }
+}
+
+@keyframes app-loading-print {
+  0% {
+    opacity: 0.55;
+    transform: translateX(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-22px) scale(0.7);
+  }
+}
+
+.app-loading-track {
+  overflow: visible;
+}
+
+.app-loading-shoe {
+  position: absolute;
+  bottom: 10px;
+  left: 28%;
+  animation: app-loading-stride 0.55s cubic-bezier(0.45, 0.05, 0.55, 0.95)
+    infinite;
+  will-change: transform;
+}
+
+.app-loading-shoe-left {
+  z-index: 2;
+  opacity: 1;
+}
+
+.app-loading-shoe-right {
+  z-index: 1;
+  opacity: 0.72;
+  animation-delay: -0.275s;
+}
+
+.app-loading-print {
+  position: absolute;
+  bottom: 4px;
+  left: 42%;
+  width: 10px;
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--rc-lane) 45%, transparent);
+  animation: app-loading-print 0.55s linear infinite;
+}
+
+.app-loading-print-1 {
+  animation-delay: 0s;
+}
+
+.app-loading-print-2 {
+  animation-delay: -0.18s;
+}
+
+.app-loading-print-3 {
+  animation-delay: -0.36s;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .app-loading-shoe,
+  .app-loading-print {
+    animation: none !important;
+  }
+
+  .app-loading-shoe-right {
+    transform: translate(12px, 0);
+  }
+
   *,
   *::before,
   *::after {

@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { weeklyGoalHasTargets } from "@running-club/shared";
 import { LogRunDialog } from "@/components/LogRunDialog";
+import { AppLoading } from "@/components/AppLoading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -304,7 +305,7 @@ function RunRow({
               </p>
             </div>
             <p className="mt-1 flex gap-3 text-xs tabular-nums text-muted-foreground">
-              <span className="font-[family-name:var(--font-stat)] text-sm font-bold text-foreground">
+              <span className="font-(family-name:--font-stat) text-sm font-bold text-foreground">
                 {formatPace(run.avgPaceSecPerKm)}
               </span>
               <span>{formatDurationClock(run.durationSeconds)}</span>
@@ -392,7 +393,7 @@ export function Home() {
   }, [refresh]);
 
   if (loading && !week) {
-    return <p className="text-sm text-muted-foreground">Loading…</p>;
+    return <AppLoading />;
   }
 
   if (error && !week) {

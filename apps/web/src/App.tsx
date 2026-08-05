@@ -6,6 +6,7 @@ import { Connect } from "./pages/Connect";
 import { Consent } from "./pages/Consent";
 import { Goal } from "./pages/Goal";
 import { Home } from "./pages/Home";
+import { Insights } from "./pages/Insights";
 import { RunDetail } from "./pages/RunDetail";
 import { Settings } from "./pages/Settings";
 import { SignIn } from "./pages/SignIn";
@@ -25,6 +26,7 @@ export default function App() {
             <Route index element={<Home />} />
             <Route path="/runs/:id" element={<RunDetail />} />
             <Route path="/goal" element={<Goal />} />
+            <Route path="/insights" element={<Insights />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/connect" element={<Connect />} />
           </Route>

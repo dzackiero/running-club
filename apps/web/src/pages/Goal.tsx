@@ -1,5 +1,6 @@
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { AppLoading } from "@/components/AppLoading";
 import { NumberStepper } from "@/components/NumberStepper";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -94,7 +95,7 @@ export function Goal() {
   }
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground">Loading…</p>;
+    return <AppLoading />;
   }
 
   const anyOn = distanceOn || durationOn || countOn;

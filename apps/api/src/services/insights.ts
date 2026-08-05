@@ -1,11 +1,19 @@
-import type { SummaryQuery, WeekProgress } from "@running-club/shared";
+import type {
+  InsightsBucket,
+  InsightsOverview,
+  OverviewQuery,
+  SummaryQuery,
+  WeekProgress,
+  WeeklyGoalRecord,
+} from "@running-club/shared";
+import { weeklyGoalHasTargets } from "@running-club/shared";
 import { and, eq, gte, lte } from "drizzle-orm";
 import { db } from "../db/client";
 import { run } from "../db/schema";
 import { avgPaceSecPerKm } from "../lib/pace";
 import { getCurrentGoal } from "./goals";
 
-export type { WeekProgress };
+export type { WeekProgress, InsightsOverview };
 
 export type Summary = {
   from: string;
@@ -31,9 +39,17 @@ type PeriodTotals = {
   daysWithRun: number;
 };
 
-function aggregateRuns(
-  rows: { startedAt: Date; distanceMeters: number; durationSeconds: number }[],
-): PeriodTotals {
+type RunRow = {
+  startedAt: Date;
+  distanceMeters: number;
+  durationSeconds: number;
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** Ranges longer than this use month buckets. */
+const WEEK_GRAIN_MAX_DAYS = 42;
+
+function aggregateRuns(rows: RunRow[]): PeriodTotals {
   let totalDistanceMeters = 0;
   let totalDurationSeconds = 0;
   const days = new Set<string>();
@@ -60,7 +76,7 @@ async function fetchRunsInRange(
   userId: string,
   from: Date,
   to: Date,
-): Promise<{ startedAt: Date; distanceMeters: number; durationSeconds: number }[]> {
+): Promise<RunRow[]> {
   return db
     .select({
       startedAt: run.startedAt,
@@ -82,6 +98,49 @@ function previousPeriodBounds(from: Date, to: Date): { from: Date; to: Date } {
   const previousTo = new Date(from.getTime() - 1);
   const previousFrom = new Date(previousTo.getTime() - periodMs);
   return { from: previousFrom, to: previousTo };
+}
+
+/** This calendar month so far (UTC), through end of today. */
+export function thisMonthBounds(now: Date): { from: Date; to: Date } {
+  const from = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+  );
+  const to = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      23,
+      59,
+      59,
+      999,
+    ),
+  );
+  return { from, to };
+}
+
+function resolveOverviewRange(
+  query: OverviewQuery | undefined,
+  now: Date,
+): { from: Date; to: Date } {
+  if (query?.from && query?.to) {
+    return { from: new Date(query.from), to: new Date(query.to) };
+  }
+  return thisMonthBounds(now);
+}
+
+function periodLengthDays(from: Date, to: Date): number {
+  const start = Date.UTC(
+    from.getUTCFullYear(),
+    from.getUTCMonth(),
+    from.getUTCDate(),
+  );
+  const end = Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate());
+  return Math.floor((end - start) / DAY_MS) + 1;
+}
+
+export function pickGrain(from: Date, to: Date): "week" | "month" {
+  return periodLengthDays(from, to) <= WEEK_GRAIN_MAX_DAYS ? "week" : "month";
 }
 
 export async function getSummary(
@@ -141,12 +200,155 @@ function getWeekBounds(
   return { weekStart, weekEnd };
 }
 
+function shiftWeek(weekStart: Date, weekDelta: number): Date {
+  const next = new Date(weekStart);
+  next.setUTCDate(next.getUTCDate() + weekDelta * 7);
+  return next;
+}
+
 function progressRatio(
   actual: number,
   target: number | null | undefined,
 ): number | null {
   if (target == null || target <= 0) return null;
   return actual / target;
+}
+
+function pctChange(current: number, previous: number): number | null {
+  if (previous <= 0) return current > 0 ? 100 : null;
+  return ((current - previous) / previous) * 100;
+}
+
+function pacePctChange(
+  current: number | null,
+  previous: number | null,
+): number | null {
+  if (current == null || previous == null || previous <= 0) return null;
+  return ((current - previous) / previous) * 100;
+}
+
+function weekGoalStatus(
+  goal: WeeklyGoalRecord | null,
+  totals: PeriodTotals,
+): "hit" | "missed" | "no_goal" {
+  if (!weeklyGoalHasTargets(goal)) return "no_goal";
+
+  const checks: boolean[] = [];
+  if (goal!.targetDistanceMeters != null) {
+    checks.push(totals.totalDistanceMeters >= goal!.targetDistanceMeters);
+  }
+  if (goal!.targetDurationSeconds != null) {
+    checks.push(totals.totalDurationSeconds >= goal!.targetDurationSeconds);
+  }
+  if (goal!.targetRunCount != null) {
+    checks.push(totals.runCount >= goal!.targetRunCount);
+  }
+
+  return checks.every(Boolean) ? "hit" : "missed";
+}
+
+/** Longest stretch of calendar days with no run inside [from, to]. */
+function longestGapDays(rows: { startedAt: Date }[], from: Date, to: Date): number {
+  const runDays = new Set(
+    rows.map((r) => r.startedAt.toISOString().slice(0, 10)),
+  );
+  const start = Date.UTC(
+    from.getUTCFullYear(),
+    from.getUTCMonth(),
+    from.getUTCDate(),
+  );
+  const end = Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate());
+
+  let longest = 0;
+  let current = 0;
+  for (let t = start; t <= end; t += DAY_MS) {
+    const key = new Date(t).toISOString().slice(0, 10);
+    if (runDays.has(key)) {
+      current = 0;
+    } else {
+      current += 1;
+      if (current > longest) longest = current;
+    }
+  }
+  return longest;
+}
+
+function filterRowsInRange(rows: RunRow[], from: Date, to: Date): RunRow[] {
+  return rows.filter((r) => r.startedAt >= from && r.startedAt <= to);
+}
+
+function buildWeekBuckets(
+  rows: RunRow[],
+  from: Date,
+  to: Date,
+  weekStartsOn: number,
+  goal: WeeklyGoalRecord | null,
+): InsightsBucket[] {
+  const { weekStart: firstWeekStart } = getWeekBounds(from, weekStartsOn);
+  const buckets: InsightsBucket[] = [];
+
+  for (let weekStart = firstWeekStart; weekStart <= to; weekStart = shiftWeek(weekStart, 1)) {
+    const weekEnd = new Date(weekStart);
+    weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+    weekEnd.setUTCHours(23, 59, 59, 999);
+
+    const bucketFrom = weekStart < from ? from : weekStart;
+    const bucketTo = weekEnd > to ? to : weekEnd;
+    if (bucketFrom > bucketTo) continue;
+
+    const weekRows = filterRowsInRange(rows, weekStart, weekEnd);
+    const weekTotals = aggregateRuns(weekRows);
+    buckets.push({
+      start: weekStart.toISOString(),
+      end: weekEnd.toISOString(),
+      distanceMeters: weekTotals.totalDistanceMeters,
+      runCount: weekTotals.runCount,
+      goalStatus: weekGoalStatus(goal, weekTotals),
+    });
+  }
+
+  return buckets;
+}
+
+function buildMonthBuckets(rows: RunRow[], from: Date, to: Date): InsightsBucket[] {
+  const buckets: InsightsBucket[] = [];
+  let cursor = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), 1));
+
+  while (cursor <= to) {
+    const monthStart = new Date(cursor);
+    const monthEnd = new Date(
+      Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 0, 23, 59, 59, 999),
+    );
+    const monthRows = filterRowsInRange(rows, monthStart, monthEnd);
+    const totals = aggregateRuns(monthRows);
+    buckets.push({
+      start: monthStart.toISOString(),
+      end: monthEnd.toISOString(),
+      distanceMeters: totals.totalDistanceMeters,
+      runCount: totals.runCount,
+      goalStatus: "no_goal",
+    });
+    cursor = new Date(
+      Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1),
+    );
+  }
+
+  return buckets;
+}
+
+function summarizeGoalsFromWeeks(
+  rows: RunRow[],
+  from: Date,
+  to: Date,
+  weekStartsOn: number,
+  goal: WeeklyGoalRecord | null,
+): InsightsOverview["goals"] {
+  const weeks = buildWeekBuckets(rows, from, to, weekStartsOn, goal);
+  return {
+    hit: weeks.filter((w) => w.goalStatus === "hit").length,
+    missed: weeks.filter((w) => w.goalStatus === "missed").length,
+    noGoal: weeks.filter((w) => w.goalStatus === "no_goal").length,
+  };
 }
 
 export async function getWeekProgress(
@@ -180,5 +382,93 @@ export async function getWeekProgress(
       ),
       runCountRatio: progressRatio(totals.runCount, goal?.targetRunCount),
     },
+  };
+}
+
+/** Insights for a date range (default: this calendar month so far) vs equal-length prior. */
+export async function getInsightsOverview(
+  userId: string,
+  options: {
+    now?: Date;
+    from?: string;
+    to?: string;
+  } = {},
+): Promise<InsightsOverview> {
+  const now = options.now ?? new Date();
+  const { from: currentFrom, to: currentTo } = resolveOverviewRange(
+    { from: options.from, to: options.to },
+    now,
+  );
+  const prev = previousPeriodBounds(currentFrom, currentTo);
+  const grain = pickGrain(currentFrom, currentTo);
+
+  const goal = await getCurrentGoal(userId);
+  const weekStartsOn = goal?.weekStartsOn ?? 1;
+
+  const [currentRows, previousRows] = await Promise.all([
+    fetchRunsInRange(userId, currentFrom, currentTo),
+    fetchRunsInRange(userId, prev.from, prev.to),
+  ]);
+
+  const current = aggregateRuns(currentRows);
+  const previous = aggregateRuns(previousRows);
+
+  const buckets =
+    grain === "week"
+      ? buildWeekBuckets(
+          currentRows,
+          currentFrom,
+          currentTo,
+          weekStartsOn,
+          goal,
+        )
+      : buildMonthBuckets(currentRows, currentFrom, currentTo);
+
+  const goals = summarizeGoalsFromWeeks(
+    currentRows,
+    currentFrom,
+    currentTo,
+    weekStartsOn,
+    goal,
+  );
+
+  return {
+    from: currentFrom.toISOString(),
+    to: currentTo.toISOString(),
+    previousFrom: prev.from.toISOString(),
+    previousTo: prev.to.toISOString(),
+    grain,
+    totals: {
+      distanceMeters: current.totalDistanceMeters,
+      durationSeconds: current.totalDurationSeconds,
+      runCount: current.runCount,
+      avgPaceSecPerKm: current.avgPaceSecPerKm,
+      daysWithRun: current.daysWithRun,
+    },
+    previous: {
+      distanceMeters: previous.totalDistanceMeters,
+      durationSeconds: previous.totalDurationSeconds,
+      runCount: previous.runCount,
+      avgPaceSecPerKm: previous.avgPaceSecPerKm,
+      daysWithRun: previous.daysWithRun,
+    },
+    deltas: {
+      distancePct: pctChange(
+        current.totalDistanceMeters,
+        previous.totalDistanceMeters,
+      ),
+      runCountPct: pctChange(current.runCount, previous.runCount),
+      pacePct: pacePctChange(
+        current.avgPaceSecPerKm,
+        previous.avgPaceSecPerKm,
+      ),
+    },
+    buckets,
+    consistency: {
+      daysWithRun: current.daysWithRun,
+      longestGapDays: longestGapDays(currentRows, currentFrom, currentTo),
+    },
+    goals,
+    sparse: current.runCount + previous.runCount < 2,
   };
 }

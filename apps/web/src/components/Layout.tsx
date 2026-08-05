@@ -54,6 +54,13 @@ export function Layout() {
         Goal
       </NavLink>
       <NavLink
+        to="/insights"
+        className={navLinkClass}
+        onClick={() => setMenuOpen(false)}
+      >
+        Insights
+      </NavLink>
+      <NavLink
         to="/connect"
         className={navLinkClass}
         onClick={() => setMenuOpen(false)}
