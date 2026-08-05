@@ -1,4 +1,4 @@
-# Running Club
+# CUP Run
 
 Personal running log with a REST API and **remote MCP server** for ChatGPT. Store runs, set weekly goals, and query stats from ChatGPT via OAuth — no pasted API keys.
 
@@ -62,14 +62,14 @@ Open the web app → sign up at `/sign-up` (email/password or Google). Use `/goa
 Create a Google Cloud **OAuth 2.0 Client ID** (application type **Web application**).
 
 1. [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → your project (or create one) → **APIs & Services** → **Credentials**.
-2. Configure the **OAuth consent screen** if prompted (External is fine for personal use). App name: `Running Club`. Add your Google account as a **test user** while the app is in Testing.
+2. Configure the **OAuth consent screen** if prompted (External is fine for personal use). App name: `CUP Run`. Add your Google account as a **test user** while the app is in Testing.
 3. **Create credentials** → **OAuth client ID** → **Web application**.
 
 Fill in:
 
 | Google field | Local value |
 |---|---|
-| Name | `Running Club local` (anything) |
+| Name | `CUP Run local` (anything) |
 | Authorized JavaScript origins | `http://localhost:5173` and `http://localhost:8787` |
 | Authorized redirect URIs | `http://localhost:8787/api/auth/callback/google` |
 

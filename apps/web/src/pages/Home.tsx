@@ -236,14 +236,13 @@ function WeekSnapshot({
           <ProgressBar ratio={primaryRatio} />
         ) : weekOffset === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No weekly goal set.{" "}
+            No weekly target yet.{" "}
             <Link
               to="/goal"
               className="font-medium text-primary underline-offset-4 hover:underline"
             >
-              Set a goal
-            </Link>{" "}
-            to track progress.
+              Set one
+            </Link>
           </p>
         ) : null}
       </div>
@@ -278,84 +277,37 @@ function RunRow({
   }
 
   return (
-    <li className="border-b border-border py-3.5 text-sm">
-      <div className="flex items-start gap-1">
+    <li className="border-b border-border text-sm">
+      <div className="flex items-stretch gap-0.5 py-3">
         <Link
           to={`/runs/${run.id}`}
-          className="min-w-0 flex-1 rounded-md outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex min-w-0 flex-1 gap-2.5 rounded-md p-1 outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring"
           aria-label={`View ${activityLabel(run.activityType)} on ${date}`}
         >
-          {/* Mobile / tablet: stacked row */}
-          <div className="flex gap-2.5 p-1 md:hidden">
-            <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-secondary">
-              <ActivityIcon type={run.activityType} />
-            </span>
-            <div className="min-w-0 flex-1 space-y-1">
-              <div className="flex items-baseline justify-between gap-3">
-                <p className="truncate font-medium text-foreground">
-                  {activityLabel(run.activityType)}
-                </p>
-                <p className="shrink-0 font-medium tabular-nums text-foreground">
-                  {formatKm(run.distanceMeters)}{" "}
-                  <span className="font-normal text-muted-foreground">km</span>
-                </p>
-              </div>
-              <p className="truncate text-xs text-muted-foreground">
-                {weekday} · {date}
-                {run.notes ? ` · ${run.notes}` : null}
-              </p>
-              <p className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums text-muted-foreground">
-                <span className="font-[family-name:var(--font-stat)] text-sm font-bold text-foreground">
-                  {formatPace(run.avgPaceSecPerKm)}
-                </span>
-                <span>{formatDurationClock(run.durationSeconds)}</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Desktop: columns */}
-          <div
-            className={cn(
-              "hidden items-center gap-3 p-1 md:grid",
-              "md:grid-cols-[5.5rem_minmax(0,1fr)_4.25rem_5rem_4rem]",
-            )}
-          >
-            <div className="min-w-0">
-              <p className="font-medium text-foreground tabular-nums">{date}</p>
-              <p className="text-xs text-muted-foreground">{weekday}</p>
-            </div>
-
-            <div className="flex min-w-0 items-start gap-2.5">
-              <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-secondary">
-                <ActivityIcon type={run.activityType} />
-              </span>
+          <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-secondary">
+            <ActivityIcon type={run.activityType} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="truncate font-medium text-foreground">
                   {activityLabel(run.activityType)}
                 </p>
-                {run.notes ? (
-                  <p className="truncate text-xs text-muted-foreground">
-                    {run.notes}
-                  </p>
-                ) : (
-                  <p className="text-xs text-muted-foreground capitalize">
-                    {run.source}
-                  </p>
-                )}
+                <p className="truncate text-xs text-muted-foreground">
+                  {weekday} · {date}
+                  {run.notes ? ` · ${run.notes}` : null}
+                </p>
               </div>
+              <p className="shrink-0 font-medium tabular-nums text-foreground">
+                {formatKm(run.distanceMeters)}{" "}
+                <span className="font-normal text-muted-foreground">km</span>
+              </p>
             </div>
-
-            <p className="font-medium tabular-nums">
-              {formatKm(run.distanceMeters)}{" "}
-              <span className="font-normal text-muted-foreground">km</span>
-            </p>
-
-            <p className="font-[family-name:var(--font-stat)] text-base font-bold tracking-tight tabular-nums">
-              {formatPace(run.avgPaceSecPerKm)}
-            </p>
-
-            <p className="tabular-nums text-muted-foreground">
-              {formatDurationClock(run.durationSeconds)}
+            <p className="mt-1 flex gap-3 text-xs tabular-nums text-muted-foreground">
+              <span className="font-[family-name:var(--font-stat)] text-sm font-bold text-foreground">
+                {formatPace(run.avgPaceSecPerKm)}
+              </span>
+              <span>{formatDurationClock(run.durationSeconds)}</span>
             </p>
           </div>
         </Link>
@@ -366,7 +318,7 @@ function RunRow({
               type="button"
               variant="ghost"
               size="icon-sm"
-              className="mt-1 shrink-0 text-muted-foreground"
+              className="mt-1 shrink-0 self-start text-muted-foreground"
               aria-label="Run actions"
               disabled={deleting}
             >
@@ -454,19 +406,7 @@ export function Home() {
   return (
     <section className="space-y-8">
       <div className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">Training</h1>
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => {
-              setEditingRun(null);
-              setLogOpen(true);
-            }}
-          >
-            Log run
-          </Button>
-        </div>
+        <h1 className="sr-only">Home</h1>
         <WeekSnapshot
           progress={week}
           weekOffset={weekOffset}
@@ -484,23 +424,35 @@ export function Home() {
           loading ? "opacity-50" : "opacity-100",
         )}
       >
-        <div className="mb-2 flex items-baseline justify-between gap-3">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-xs font-semibold tracking-wide text-primary uppercase">
-            {weekOffset === 0 ? "This week’s runs" : "Runs"}
+            Runs
           </h2>
-          <Link
-            to="/goal"
-            className="text-sm text-primary underline-offset-4 hover:underline"
-          >
-            Edit goal
-          </Link>
+          <div className="flex shrink-0 items-center gap-2">
+            <Link
+              to="/goal"
+              className="px-1 text-sm text-primary underline-offset-4 hover:underline"
+            >
+              Goal
+            </Link>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                setEditingRun(null);
+                setLogOpen(true);
+              }}
+            >
+              Log run
+            </Button>
+          </div>
         </div>
         <Separator className="mb-1" />
         {runs.length === 0 ? (
           <p className="pt-4 text-sm text-muted-foreground">
             {weekOffset === 0 ? (
               <>
-                No runs yet.{" "}
+                Nothing this week.{" "}
                 <button
                   type="button"
                   className="font-medium text-primary underline-offset-4 hover:underline"
@@ -509,9 +461,8 @@ export function Home() {
                     setLogOpen(true);
                   }}
                 >
-                  Log your first run
-                </button>{" "}
-                to get started.
+                  Log a run
+                </button>
               </>
             ) : (
               "No runs this week."

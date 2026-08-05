@@ -47,7 +47,7 @@ export function GoogleSignInButton({
       onClick={signInWithGoogle}
     >
       <GoogleMark />
-      {loading ? "Redirecting…" : "Continue with Google"}
+      {loading ? "Opening Google…" : "Use Google"}
     </Button>
   );
 }

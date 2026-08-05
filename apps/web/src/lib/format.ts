@@ -21,13 +21,18 @@ export function formatDurationClock(seconds: number): string {
   return `${m}:${ss}`;
 }
 
-export function formatDateParts(iso: string): { date: string; weekday: string } {
+export function formatDateParts(
+  iso: string,
+  options?: { year?: boolean },
+): { date: string; weekday: string } {
   const d = new Date(iso);
+  const showYear =
+    options?.year ?? d.getFullYear() !== new Date().getFullYear();
   return {
     date: d.toLocaleDateString(undefined, {
       month: "short",
       day: "numeric",
-      year: "numeric",
+      ...(showYear ? { year: "numeric" as const } : {}),
     }),
     weekday: d.toLocaleDateString(undefined, { weekday: "short" }),
   };

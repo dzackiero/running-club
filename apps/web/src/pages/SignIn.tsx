@@ -51,7 +51,7 @@ export function SignIn() {
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
         <p className="text-sm text-muted-foreground">
-          Continue to your training log.
+          Google or email — whatever you used last time.
         </p>
       </div>
 

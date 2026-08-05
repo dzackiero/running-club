@@ -1,4 +1,4 @@
-# Running Club — Design System
+# CUP Run — Design System
 
 **Direction:** Track chalk / daylight stadium (theme 2)  
 **Product:** Personal running log (REST + ChatGPT MCP companion)  
@@ -55,6 +55,7 @@ No dark theme in v1 unless we explicitly add one later.
 | Role | Face | Notes |
 |---|---|---|
 | Display / stats | **Barlow Condensed** (or similar condensed athletic sans) | Week km, pace, big totals only. Weight 600–700. |
+| Brand wordmark | **Barlow Condensed** (`CUP`) + **DM Sans** (`Run`) | Race-bib lockup next to the track-cup mark. |
 | UI / body | **DM Sans** (or Inter only if DM unavailable) | Nav, forms, lists, body copy. |
 | Mono / splits | **IBM Plex Mono** (optional) | Pace strings like `5:12 /km` if not using tabular Barlow. |
 
@@ -79,7 +80,7 @@ Load via Google Fonts or `fontsource` in `apps/web`. Prefer `font-variant-numeri
 
 ```
 ┌──────────────────────────────────┐
-│ Running Club          Goal Connect│
+│ CUP Run               Goal Connect│
 ├──────────────────────────────────┤
 │ THIS WEEK                        │
 │ 42.3 km          ████████░░ 50km │  ← condensed stats
@@ -109,7 +110,7 @@ Minimal: 150–200ms ease on button/hover/focus. No page-load choreography. Resp
 
 ## Voice / copy
 
-Plain, coach-like, sentence case. Buttons say the action (“Save goal”, “Create account”). Empty states invite one next step (“Log a run from ChatGPT or set a weekly goal”).
+Plain and short, like a running buddy — not a product brochure. Say what to do next. Avoid “training log”, “OAuth”, “MCP”, and “v1” in the UI. Buttons name the action (“Save goal”, “Log run”).
 
 ## Signature
 

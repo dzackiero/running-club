@@ -51,9 +51,9 @@ export function SignUp() {
   return (
     <section className="mx-auto w-full max-w-sm space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Sign up</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Create account</h1>
         <p className="text-sm text-muted-foreground">
-          Create an account to store runs and weekly goals.
+          Then you can log runs and set a weekly target.
         </p>
       </div>
 

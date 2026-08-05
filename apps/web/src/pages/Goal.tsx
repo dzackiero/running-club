@@ -104,7 +104,7 @@ export function Goal() {
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Weekly goal</h1>
         <p className="text-sm text-muted-foreground">
-          Turn on what you care about. Distance, time, runs — any mix.
+          Choose what you want to hit this week. You can leave some off.
         </p>
       </div>
 

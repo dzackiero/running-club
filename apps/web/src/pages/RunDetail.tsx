@@ -117,7 +117,7 @@ export function RunDetail() {
     );
   }
 
-  const { date, weekday } = formatDateParts(run.startedAt);
+  const { date, weekday } = formatDateParts(run.startedAt, { year: true });
   const hasExtras =
     run.avgHeartRate != null ||
     run.maxHeartRate != null ||
@@ -188,7 +188,7 @@ export function RunDetail() {
       {hasExtras ? (
         <div className="space-y-3">
           <h2 className="text-xs font-semibold tracking-wide text-primary uppercase">
-            More stats
+            Details
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {run.avgHeartRate != null ? (

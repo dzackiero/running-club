@@ -76,9 +76,11 @@ export function Consent() {
     return (
       <section className="mx-auto w-full max-w-sm space-y-4">
         <h1 className="text-2xl font-semibold tracking-tight">
-          Authorize application
+          Allow access
         </h1>
-        <p className="text-sm text-muted-foreground">Sign in to continue.</p>
+        <p className="text-sm text-muted-foreground">
+          Sign in first, then you can approve this app.
+        </p>
         <Button asChild className="w-full" size="lg">
           <Link to={`/sign-in?returnTo=${encodeURIComponent(returnTo)}`}>
             Sign in
@@ -91,9 +93,7 @@ export function Consent() {
   if (!clientId) {
     return (
       <section className="mx-auto w-full max-w-sm space-y-4">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Authorize application
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Allow access</h1>
         <Alert variant="destructive">
           <AlertDescription>
             Missing client_id in the authorization request.
@@ -110,7 +110,7 @@ export function Consent() {
     <section className="mx-auto w-full max-w-sm space-y-6">
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">
-          Authorize {appName}
+          {appName} wants access
         </h1>
         {client?.logo_uri ? (
           <img
@@ -120,7 +120,7 @@ export function Consent() {
           />
         ) : null}
         <p className="text-sm text-muted-foreground">
-          This application is requesting access to your Running Club account.
+          It can see and update your runs and weekly goal.
         </p>
       </div>
 
@@ -133,7 +133,7 @@ export function Consent() {
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-muted-foreground">Default account access</p>
+        <p className="text-sm text-muted-foreground">Your runs and goals</p>
       )}
 
       {error ? (
@@ -150,7 +150,7 @@ export function Consent() {
           disabled={loading}
           onClick={() => respond(true)}
         >
-          {loading ? "Authorizing…" : "Allow"}
+          {loading ? "Allowing…" : "Allow"}
         </Button>
         <Button
           type="button"

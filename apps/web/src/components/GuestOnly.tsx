@@ -27,7 +27,7 @@ export function GuestOnly() {
 
   if (session?.user && continueUrl) {
     return (
-      <p className="text-sm text-muted-foreground">Continuing authorization…</p>
+      <p className="text-sm text-muted-foreground">Taking you back…</p>
     );
   }
 

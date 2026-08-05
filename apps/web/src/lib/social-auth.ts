@@ -2,10 +2,10 @@ const apiBaseUrl = import.meta.env.VITE_API_URL ?? "http://localhost:8787";
 
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   account_not_linked:
-    "This Google account matches an existing email/password user. Sign in with email first, or try Google again after accounts can be linked.",
+    "This Google email already has a password account. Sign in with email first.",
   unable_to_link_account:
-    "Could not link this Google account. Sign in with email and password instead.",
-  signup_disabled: "New sign-ups with Google are disabled.",
+    "Couldn’t connect Google. Try signing in with email and password.",
+  signup_disabled: "Google sign-up is turned off.",
 };
 
 export function oauthErrorFromSearch(search: string): string | null {

@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { CupRunWordmark } from "@/components/CupRunLogo";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
@@ -107,11 +108,8 @@ export function Layout() {
   return (
     <div className="mx-auto min-h-screen w-full max-w-3xl px-4 pb-10 sm:px-6">
       <header className="flex items-center justify-between gap-3 py-4">
-        <Link
-          to="/"
-          className="text-base font-semibold tracking-tight text-foreground no-underline"
-        >
-          Running Club
+        <Link to="/" className="text-foreground no-underline">
+          <CupRunWordmark />
         </Link>
 
         {user ? (

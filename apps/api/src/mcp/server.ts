@@ -50,7 +50,7 @@ export function mcpUnauthorizedResponse(
 
 function createRunningClubMcpServer(userId: string): McpServer {
   const server = new McpServer({
-    name: "running-club",
+    name: "cup-run",
     version: "1.0.0",
   });
 

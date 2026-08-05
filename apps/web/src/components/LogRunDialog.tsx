@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { ACTIVITY_LABELS } from "@/lib/activity";
 import { createRun, updateRun } from "@/lib/api";
@@ -207,8 +208,8 @@ export function LogRunDialog({
           <DialogTitle>{editing ? "Edit run" : "Log a run"}</DialogTitle>
           <DialogDescription>
             {editing
-              ? "Update distance, time, or details."
-              : "Distance, time, and when you went out."}
+              ? "Change distance, time, or notes."
+              : "How far, how long, and when."}
           </DialogDescription>
         </DialogHeader>
 
@@ -288,12 +289,13 @@ export function LogRunDialog({
 
           <div className="space-y-2">
             <Label htmlFor="log-notes">Notes (optional)</Label>
-            <Input
+            <Textarea
               id="log-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Easy miles, felt good…"
+              placeholder="How it felt, weather, route…"
               maxLength={2000}
+              rows={4}
             />
           </div>
 

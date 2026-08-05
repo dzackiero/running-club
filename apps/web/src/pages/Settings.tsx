@@ -172,7 +172,7 @@ export function Settings() {
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground">
-          Account details and calendar preferences.
+          Name, when your week starts, and password.
         </p>
       </div>
 
@@ -243,7 +243,7 @@ export function Settings() {
         <div className="space-y-2">
           <h2 className="text-base font-medium">Password</h2>
           <p className="text-sm text-muted-foreground">
-            You sign in with Google. There is no password on this account.
+            You use Google to sign in, so there’s no password here.
           </p>
         </div>
       ) : (
