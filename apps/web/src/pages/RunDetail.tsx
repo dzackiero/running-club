@@ -2,8 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { HrZoneBar } from "@/components/HrZoneBar";
 import { LogRunDialog } from "@/components/LogRunDialog";
 import { AppLoading } from "@/components/AppLoading";
+import { RunRouteScribble } from "@/components/RunRouteScribble";
+import { RunStreamsChart } from "@/components/RunStreamsChart";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -16,30 +19,6 @@ import {
   formatKm,
   formatPace,
 } from "@/lib/format";
-
-function DetailStat({
-  label,
-  value,
-  sub,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-}) {
-  return (
-    <div className="rounded-lg border border-border bg-card px-4 py-3">
-      <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        {label}
-      </p>
-      <p className="mt-1 font-[family-name:var(--font-stat)] text-2xl font-bold tracking-tight tabular-nums text-foreground">
-        {value}
-      </p>
-      {sub ? (
-        <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>
-      ) : null}
-    </div>
-  );
-}
 
 function formatStartedAt(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
@@ -119,13 +98,35 @@ export function RunDetail() {
   }
 
   const { date, weekday } = formatDateParts(run.startedAt, { year: true });
-  const hasExtras =
-    run.avgHeartRate != null ||
-    run.maxHeartRate != null ||
-    run.elevationGainMeters != null ||
-    run.calories != null ||
-    run.avgCadence != null ||
-    run.perceivedEffort != null;
+  const secondary = [
+    run.trainingLoad != null
+      ? { label: "Load", value: String(Math.round(run.trainingLoad)) }
+      : null,
+    run.intensity != null
+      ? { label: "Intensity", value: `${Math.round(run.intensity)}%` }
+      : null,
+    run.gapPaceSecPerKm != null
+      ? { label: "GAP", value: formatPace(run.gapPaceSecPerKm) }
+      : null,
+    run.avgHeartRate != null
+      ? { label: "Avg HR", value: `${run.avgHeartRate} bpm` }
+      : null,
+    run.maxHeartRate != null
+      ? { label: "Max HR", value: `${run.maxHeartRate} bpm` }
+      : null,
+    run.elevationGainMeters != null
+      ? { label: "Elev", value: `${Math.round(run.elevationGainMeters)} m` }
+      : null,
+    run.calories != null
+      ? { label: "Calories", value: String(Math.round(run.calories)) }
+      : null,
+    run.avgCadence != null
+      ? { label: "Cadence", value: `${Math.round(run.avgCadence)} spm` }
+      : null,
+    run.perceivedEffort != null
+      ? { label: "Effort", value: `${run.perceivedEffort}/10` }
+      : null,
+  ].filter((item): item is { label: string; value: string } => item != null);
 
   return (
     <section className="space-y-6">
@@ -167,71 +168,63 @@ export function RunDetail() {
           </h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {date} · {weekday}
+            {run.source === "intervals" ? " · Intervals" : null}
           </p>
-          <p className="text-sm text-muted-foreground capitalize">{run.source}</p>
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <DetailStat
-          label="Distance"
-          value={formatKm(run.distanceMeters)}
-          sub="km"
-        />
-        <DetailStat
-          label="Duration"
-          value={formatDurationClock(run.durationSeconds)}
-          sub={formatDuration(run.durationSeconds)}
-        />
-        <DetailStat label="Pace" value={formatPace(run.avgPaceSecPerKm)} />
-      </div>
-
-      {hasExtras ? (
-        <div className="space-y-3">
-          <h2 className="text-xs font-semibold tracking-wide text-primary uppercase">
-            Details
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {run.avgHeartRate != null ? (
-              <DetailStat
-                label="Avg heart rate"
-                value={`${run.avgHeartRate}`}
-                sub="bpm"
-              />
-            ) : null}
-            {run.maxHeartRate != null ? (
-              <DetailStat
-                label="Max heart rate"
-                value={`${run.maxHeartRate}`}
-                sub="bpm"
-              />
-            ) : null}
-            {run.elevationGainMeters != null ? (
-              <DetailStat
-                label="Elevation"
-                value={`${run.elevationGainMeters}`}
-                sub="m"
-              />
-            ) : null}
-            {run.calories != null ? (
-              <DetailStat label="Calories" value={`${run.calories}`} />
-            ) : null}
-            {run.avgCadence != null ? (
-              <DetailStat
-                label="Cadence"
-                value={`${run.avgCadence}`}
-                sub="spm"
-              />
-            ) : null}
-            {run.perceivedEffort != null ? (
-              <DetailStat
-                label="Effort"
-                value={`${run.perceivedEffort}`}
-                sub="out of 10"
-              />
-            ) : null}
-          </div>
+      <dl className="grid grid-cols-3 gap-3 border-y border-border py-4">
+        <div>
+          <dt className="text-xs tracking-wide text-muted-foreground uppercase">
+            Pace
+          </dt>
+          <dd className="mt-1 font-(family-name:--font-stat) text-3xl font-bold tracking-tight tabular-nums text-foreground">
+            {formatPace(run.avgPaceSecPerKm)}
+          </dd>
         </div>
+        <div>
+          <dt className="text-xs tracking-wide text-muted-foreground uppercase">
+            Distance
+          </dt>
+          <dd className="mt-1 font-(family-name:--font-stat) text-3xl font-bold tracking-tight tabular-nums text-foreground">
+            {formatKm(run.distanceMeters)}
+            <span className="ml-1 text-sm font-normal text-muted-foreground">
+              km
+            </span>
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs tracking-wide text-muted-foreground uppercase">
+            Duration
+          </dt>
+          <dd className="mt-1 font-(family-name:--font-stat) text-3xl font-bold tracking-tight tabular-nums text-foreground">
+            {formatDurationClock(run.durationSeconds)}
+          </dd>
+          <p className="text-xs text-muted-foreground">
+            {formatDuration(run.durationSeconds)}
+          </p>
+        </div>
+      </dl>
+
+      {secondary.length > 0 ? (
+        <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+          {secondary.map((item) => (
+            <div key={item.label} className="flex gap-2">
+              <dt className="text-muted-foreground">{item.label}</dt>
+              <dd className="tabular-nums text-foreground">{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+
+      {run.hrZoneSeconds && run.hrZoneSeconds.some((value) => value > 0) ? (
+        <HrZoneBar seconds={run.hrZoneSeconds} />
+      ) : null}
+
+      {run.polyline ? <RunRouteScribble polyline={run.polyline} /> : null}
+
+      {run.streams && run.streams.t.length > 0 ? (
+        <RunStreamsChart streams={run.streams} />
       ) : null}
 
       {run.notes ? (
@@ -239,9 +232,7 @@ export function RunDetail() {
           <h2 className="text-xs font-semibold tracking-wide text-primary uppercase">
             Notes
           </h2>
-          <p className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground">
-            {run.notes}
-          </p>
+          <p className="text-sm whitespace-pre-wrap text-foreground">{run.notes}</p>
         </div>
       ) : null}
 
@@ -250,7 +241,7 @@ export function RunDetail() {
           <h2 className="text-xs font-semibold tracking-wide text-primary uppercase">
             Splits
           </h2>
-          <ul className="divide-y divide-border rounded-lg border border-border bg-card">
+          <ul className="divide-y divide-border border-y border-border">
             {run.splits.map((split, index) => {
               const pace =
                 split.distanceMeters > 0
@@ -259,12 +250,15 @@ export function RunDetail() {
               return (
                 <li
                   key={index}
-                  className="flex items-center justify-between gap-3 px-4 py-3 text-sm tabular-nums"
+                  className="flex items-center justify-between gap-3 py-3 text-sm tabular-nums"
                 >
-                  <span className="text-muted-foreground">Split {index + 1}</span>
+                  <span className="text-muted-foreground">{index + 1}</span>
                   <span className="text-foreground">
                     {formatKm(split.distanceMeters)} km ·{" "}
                     {formatDurationClock(split.durationSeconds)}
+                    {split.avgHeartRate != null
+                      ? ` · ${split.avgHeartRate} bpm`
+                      : null}
                   </span>
                   <span className="font-(family-name:--font-stat) font-bold text-foreground">
                     {formatPace(pace)}
