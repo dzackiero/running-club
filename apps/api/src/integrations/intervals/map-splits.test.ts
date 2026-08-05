@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { mapIntervalsLapsToSplits, splitsFromDistanceStream } from "./map-splits";
+import {
+  mapIntervalsLapsToSplits,
+  splitsFromDistanceStream,
+  splitsFromIntervalsStreams,
+} from "./map-splits";
 
 describe("mapIntervalsLapsToSplits", () => {
   it("keeps LAP rows and skips WORK/REST", () => {
@@ -47,5 +51,61 @@ describe("splitsFromDistanceStream", () => {
     const splits = splitsFromDistanceStream(time, distance, hr);
     expect(splits[0]?.distanceMeters).toBeCloseTo(1000, 0);
     expect(splits[0]?.durationSeconds).toBe(300);
+  });
+});
+
+describe("splitsFromIntervalsStreams", () => {
+  it("builds even km splits from velocity when distance is missing", () => {
+    const time = Array.from({ length: 501 }, (_, i) => i);
+    const velocity = time.map(() => 2);
+    const splits = splitsFromIntervalsStreams(
+      [
+        { type: "time", data: time },
+        { type: "velocity_smooth", data: velocity },
+      ],
+      1000,
+    );
+    expect(splits).toHaveLength(1);
+    expect(splits[0]?.durationSeconds).toBe(500);
+  });
+
+  it("keeps pause time inside the kilometer where you stopped", () => {
+    const time: number[] = [];
+    const velocity: number[] = [];
+    for (let t = 0; t <= 250; t += 1) {
+      time.push(t);
+      velocity.push(2);
+    }
+    for (let t = 251; t <= 450; t += 1) {
+      time.push(t);
+      velocity.push(0);
+    }
+    for (let t = 451; t <= 700; t += 1) {
+      time.push(t);
+      velocity.push(2);
+    }
+
+    const splits = splitsFromIntervalsStreams(
+      [
+        { type: "time", data: time },
+        { type: "velocity_smooth", data: velocity },
+      ],
+      1000,
+    );
+    expect(splits).toHaveLength(1);
+    expect(splits[0]?.durationSeconds).toBe(700);
+  });
+
+  it("scales kilometer-unit distance streams to meters", () => {
+    const splits = splitsFromIntervalsStreams(
+      [
+        { type: "time", data: [0, 500, 1000, 1500, 2000, 2500] },
+        { type: "distance", data: [0, 1, 2, 3, 4, 5] },
+      ],
+      5000,
+    );
+    expect(splits.map((split) => split.durationSeconds)).toEqual([
+      500, 500, 500, 500, 500,
+    ]);
   });
 });

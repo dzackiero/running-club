@@ -14,6 +14,7 @@ export const runStreamsSchema = z
     t: z.array(z.number()).max(250),
     pace: z.array(z.number()).max(250),
     hr: z.array(z.number().nullable()).max(250),
+    splitAlgo: z.string().optional(),
   })
   .refine(
     (value) =>

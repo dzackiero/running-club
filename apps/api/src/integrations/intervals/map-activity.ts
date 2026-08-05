@@ -1,5 +1,5 @@
 import type { CreateRunInput } from "@running-club/shared";
-import { mapIntervalsLapsToSplits, type IntervalsLap } from "./map-splits";
+import type { IntervalsLap } from "./map-splits";
 import { gapToPaceSecPerKm, normalizeIntensity } from "./metrics";
 
 export type IntervalsActivity = {
@@ -60,7 +60,6 @@ export function mapIntervalsActivityToRun(
     activity.hr_zone_times,
   );
   const hrZoneBpm = firstZoneTimes(activity.icu_hr_zones, activity.hr_zones);
-  const splits = mapIntervalsLapsToSplits(activity.icu_intervals ?? []);
   const polyline = activity.map?.summary_polyline?.trim();
 
   return {
@@ -90,7 +89,6 @@ export function mapIntervalsActivityToRun(
     ...(gapPaceSecPerKm != null ? { gapPaceSecPerKm } : {}),
     ...(hrZoneSeconds ? { hrZoneSeconds } : {}),
     ...(hrZoneBpm ? { hrZoneBpm } : {}),
-    ...(splits.length > 0 ? { splits } : {}),
     ...(polyline ? { polyline } : {}),
     source: "intervals",
     externalId: activity.id,

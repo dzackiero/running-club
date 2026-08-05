@@ -1,8 +1,11 @@
-import type { CreateRunInput } from "@running-club/shared";
+import type { CreateRunInput, RunStreams } from "@running-club/shared";
 import { IntervalsHttpError } from "../integrations/intervals/errors";
 import { mapIntervalsActivityToRun } from "../integrations/intervals/map-activity";
 import type { IntervalsActivity } from "../integrations/intervals/map-activity";
-import { splitsFromDistanceStream } from "../integrations/intervals/map-splits";
+import {
+  KM_SPLIT_ALGO,
+  splitsFromIntervalsStreams,
+} from "../integrations/intervals/map-splits";
 import {
   downsampleIntervalsStreams,
   type IntervalsStream,
@@ -39,6 +42,25 @@ export function shouldEnrichIntervalsRun(
   if (!existing) return true;
   if (existing.streams == null) return true;
   if (existing.hrZoneBpm == null) return true;
+  return summaryChanged(existing, incoming);
+}
+
+export function shouldRefetchIntervalsStreams(
+  existing: {
+    streams: unknown;
+    distanceMeters: number;
+    durationSeconds: number;
+    avgHeartRate: number | null;
+  } | null,
+  incoming: {
+    distanceMeters: number;
+    durationSeconds: number;
+    avgHeartRate?: number;
+  },
+): boolean {
+  if (!existing) return true;
+  if (existing.streams == null) return true;
+  if (!hasKmSplitAlgo(existing.streams)) return true;
   return summaryChanged(existing, incoming);
 }
 
@@ -88,6 +110,7 @@ export async function importFromIntervals(
 
     const existing = await findRunByExternalId(userId, mapped.externalId);
     const enrich = shouldEnrichIntervalsRun(existing, mapped);
+    const refetchStreams = shouldRefetchIntervalsStreams(existing, mapped);
     let payload: CreateRunInput = enrich ? mapped : summaryOnly(mapped);
 
     if (enrich && client.getActivity) {
@@ -103,16 +126,21 @@ export async function importFromIntervals(
       }
     }
 
-    const refetchStreams =
-      !existing || existing.streams == null || summaryChanged(existing, mapped);
-
-    if (enrich && refetchStreams && client.getStreams) {
+    if (refetchStreams && client.getStreams) {
       try {
         const rawStreams = await client.getStreams(mapped.externalId);
-        const streams = downsampleIntervalsStreams(rawStreams);
-        if (streams) payload = { ...payload, streams };
-        const derived = splitsFromRawStreams(rawStreams);
-        if (derived.length > 0) payload = { ...payload, splits: derived };
+        const derived = splitsFromIntervalsStreams(
+          rawStreams,
+          payload.distanceMeters,
+        );
+        payload = {
+          ...payload,
+          streams: withSplitAlgo(
+            downsampleIntervalsStreams(rawStreams),
+            existing?.streams,
+          ),
+          splits: derived,
+        };
       } catch (err) {
         if (err instanceof IntervalsHttpError && err.status === 429) throw err;
         logger.warn(
@@ -149,33 +177,24 @@ function summaryOnly(input: CreateRunInput): CreateRunInput {
   return rest;
 }
 
-function splitsFromRawStreams(streams: IntervalsStream[]) {
-  const time = numericStream(streams, "time");
-  const distance = numericStream(streams, "distance");
-  if (!time || !distance) return [];
-  const hr = streamValues(streams, "heartrate");
-  return splitsFromDistanceStream(time, distance, hr ?? undefined);
+function hasKmSplitAlgo(streams: unknown): boolean {
+  if (!streams || typeof streams !== "object") return false;
+  return (streams as { splitAlgo?: string }).splitAlgo === KM_SPLIT_ALGO;
 }
 
-function streamValues(
-  streams: IntervalsStream[],
-  type: string,
-): Array<number | null> | null {
-  const match = streams.find(
-    (stream) => (stream.type ?? "").toLowerCase() === type,
-  );
-  return match?.data ?? null;
-}
-
-function numericStream(
-  streams: IntervalsStream[],
-  type: string,
-): number[] | null {
-  const data = streamValues(streams, type);
-  if (!data) return null;
-  return data.map((value) =>
-    typeof value === "number" && Number.isFinite(value) ? value : Number.NaN,
-  );
+function withSplitAlgo(
+  downsampled: RunStreams | undefined,
+  existingStreams: unknown,
+): RunStreams {
+  if (downsampled) return { ...downsampled, splitAlgo: KM_SPLIT_ALGO };
+  if (
+    existingStreams &&
+    typeof existingStreams === "object" &&
+    Array.isArray((existingStreams as RunStreams).t)
+  ) {
+    return { ...(existingStreams as RunStreams), splitAlgo: KM_SPLIT_ALGO };
+  }
+  return { t: [], pace: [], hr: [], splitAlgo: KM_SPLIT_ALGO };
 }
 
 function toDateOnly(date: Date): string {

@@ -1,3 +1,5 @@
+export type IntervalsStream = { type?: string; data?: Array<number | null> };
+
 export type IntervalsLap = {
   type?: string | null;
   distance?: number | null;
@@ -110,4 +112,94 @@ export function splitsFromDistanceStream(
   }
 
   return splits;
+}
+
+export const KM_SPLIT_ALGO = "km-v1";
+
+export function splitsFromIntervalsStreams(
+  streams: IntervalsStream[],
+  expectedDistanceMeters?: number,
+): MappedSplit[] {
+  const timeRaw = streamData(streams, "time");
+  if (!timeRaw) return [];
+
+  const distRaw = streamData(streams, "distance");
+  const velRaw =
+    streamData(streams, "velocity_smooth") ?? streamData(streams, "velocity");
+  const hrRaw = streamData(streams, "heartrate");
+
+  const time: number[] = [];
+  const distance: number[] = [];
+  const hr: Array<number | null> = [];
+
+  if (distRaw) {
+    const length = Math.min(timeRaw.length, distRaw.length);
+    for (let i = 0; i < length; i += 1) {
+      const t = timeRaw[i];
+      const d = distRaw[i];
+      if (typeof t !== "number" || !Number.isFinite(t)) continue;
+      if (typeof d !== "number" || !Number.isFinite(d) || d < 0) continue;
+      time.push(t);
+      distance.push(d);
+      hr.push(finiteOrNull(hrRaw?.[i]));
+    }
+  } else if (velRaw) {
+    const length = Math.min(timeRaw.length, velRaw.length);
+    let acc = 0;
+    let prevTime: number | null = null;
+    for (let i = 0; i < length; i += 1) {
+      const t = timeRaw[i];
+      if (typeof t !== "number" || !Number.isFinite(t)) continue;
+      const mps = finiteOrZero(velRaw[i]);
+      if (prevTime != null) acc += Math.max(0, t - prevTime) * mps;
+      time.push(t);
+      distance.push(acc);
+      hr.push(finiteOrNull(hrRaw?.[i]));
+      prevTime = t;
+    }
+  }
+
+  if (time.length < 2) return [];
+  return splitsFromDistanceStream(
+    time,
+    normalizeDistanceUnits(distance, expectedDistanceMeters),
+    hr,
+  );
+}
+
+function streamData(
+  streams: IntervalsStream[],
+  type: string,
+): Array<number | null> | undefined {
+  return streams.find((stream) => (stream.type ?? "").toLowerCase() === type)
+    ?.data;
+}
+
+function finiteOrNull(value: number | null | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function finiteOrZero(value: number | null | undefined): number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
+    : 0;
+}
+
+function normalizeDistanceUnits(
+  distance: number[],
+  expectedDistanceMeters?: number,
+): number[] {
+  const maxD = distance[distance.length - 1] ?? 0;
+  if (!(maxD > 0) || maxD >= 100) return distance;
+  if (
+    expectedDistanceMeters != null &&
+    expectedDistanceMeters > 500 &&
+    Math.abs(maxD * 1000 - expectedDistanceMeters) / expectedDistanceMeters < 0.3
+  ) {
+    return distance.map((value) => value * 1000);
+  }
+  if (expectedDistanceMeters == null && maxD < 50) {
+    return distance.map((value) => value * 1000);
+  }
+  return distance;
 }
