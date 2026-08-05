@@ -1,7 +1,7 @@
 # Intervals run analysis
 
 **Date:** 2026-08-05  
-**Status:** Draft — pending user review  
+**Status:** Approved  
 **Product:** CUP Run  
 **Source:** Intervals.icu import → richer `get_run` (web + MCP)
 
