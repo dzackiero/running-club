@@ -5,7 +5,7 @@ import {
   type UpdateRunInput,
 } from "@running-club/shared";
 import type { z } from "zod";
-import { and, desc, eq, gte, lt, lte } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, gte, lt, lte } from "drizzle-orm";
 import { db } from "../db/client";
 import { run } from "../db/schema";
 import { avgPaceSecPerKm } from "../lib/pace";
@@ -31,6 +31,11 @@ function toRunRecord(row: RunRow): RunRecord {
     notes: row.notes,
     splits: row.splits as RunRecord["splits"],
     polyline: row.polyline,
+    trainingLoad: row.trainingLoad,
+    intensity: row.intensity,
+    gapPaceSecPerKm: row.gapPaceSecPerKm,
+    hrZoneSeconds: (row.hrZoneSeconds as RunRecord["hrZoneSeconds"]) ?? null,
+    streams: (row.streams as RunRecord["streams"]) ?? null,
     source: row.source,
     externalId: row.externalId,
     createdAt: row.createdAt.toISOString(),
@@ -64,6 +69,11 @@ export async function createRun(
       notes: input.notes,
       splits: input.splits,
       polyline: input.polyline,
+      trainingLoad: input.trainingLoad,
+      intensity: input.intensity,
+      gapPaceSecPerKm: input.gapPaceSecPerKm,
+      hrZoneSeconds: input.hrZoneSeconds,
+      streams: input.streams,
       source: input.source ?? "manual",
       externalId: input.externalId,
     })
@@ -92,15 +102,16 @@ export async function listRuns(
   }
 
   const limit = options.limit ?? 50;
+  const { streams: _streams, ...listColumns } = getTableColumns(run);
 
   const rows = await db
-    .select()
+    .select(listColumns)
     .from(run)
     .where(and(...conditions))
     .orderBy(desc(run.startedAt))
     .limit(limit);
 
-  return rows.map(toRunRecord);
+  return rows.map((row) => toRunRecord({ ...row, streams: null }));
 }
 
 export async function getRun(
@@ -166,6 +177,21 @@ export async function updateRun(
   if (input.polyline !== undefined) {
     updates.polyline = input.polyline;
   }
+  if (input.trainingLoad !== undefined) {
+    updates.trainingLoad = input.trainingLoad;
+  }
+  if (input.intensity !== undefined) {
+    updates.intensity = input.intensity;
+  }
+  if (input.gapPaceSecPerKm !== undefined) {
+    updates.gapPaceSecPerKm = input.gapPaceSecPerKm;
+  }
+  if (input.hrZoneSeconds !== undefined) {
+    updates.hrZoneSeconds = input.hrZoneSeconds;
+  }
+  if (input.streams !== undefined) {
+    updates.streams = input.streams;
+  }
   if (input.source !== undefined) {
     updates.source = input.source;
   }
@@ -180,6 +206,34 @@ export async function updateRun(
     .returning();
 
   return row ? toRunRecord(row) : null;
+}
+
+export async function findRunByExternalId(
+  userId: string,
+  externalId: string,
+): Promise<Pick<
+  RunRecord,
+  "id" | "distanceMeters" | "durationSeconds" | "avgHeartRate" | "streams"
+> | null> {
+  const [row] = await db
+    .select({
+      id: run.id,
+      distanceMeters: run.distanceMeters,
+      durationSeconds: run.durationSeconds,
+      avgHeartRate: run.avgHeartRate,
+      streams: run.streams,
+    })
+    .from(run)
+    .where(and(eq(run.userId, userId), eq(run.externalId, externalId)))
+    .limit(1);
+  if (!row) return null;
+  return {
+    id: row.id,
+    distanceMeters: row.distanceMeters,
+    durationSeconds: row.durationSeconds,
+    avgHeartRate: row.avgHeartRate,
+    streams: (row.streams as RunRecord["streams"]) ?? null,
+  };
 }
 
 export async function upsertImportedRun(

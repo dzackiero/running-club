@@ -311,6 +311,11 @@ export const run = pgTable(
     notes: text("notes"),
     splits: jsonb("splits"),
     polyline: text("polyline"),
+    trainingLoad: real("training_load"),
+    intensity: real("intensity"),
+    gapPaceSecPerKm: real("gap_pace_sec_per_km"),
+    hrZoneSeconds: jsonb("hr_zone_seconds"),
+    streams: jsonb("streams"),
     source: text("source").notNull().default("manual"),
     externalId: text("external_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
