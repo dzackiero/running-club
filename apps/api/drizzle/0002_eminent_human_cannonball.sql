@@ -1,0 +1,1 @@
+ALTER TABLE "plan_occurrence" ADD CONSTRAINT "plan_occurrence_linked_gym_workout_id_gym_workout_id_fk" FOREIGN KEY ("linked_gym_workout_id") REFERENCES "public"."gym_workout"("id") ON DELETE set null ON UPDATE no action;

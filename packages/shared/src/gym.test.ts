@@ -50,4 +50,33 @@ describe("createGymWorkoutSchema", () => {
       }),
     ).toThrow();
   });
+
+  it("rejects duplicate exercise positions", () => {
+    expect(() =>
+      createGymWorkoutSchema.parse({
+        ...workout,
+        exercises: [
+          workout.exercises[0]!,
+          { ...workout.exercises[1]!, position: 0 },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects duplicate set positions within an exercise", () => {
+    expect(() =>
+      createGymWorkoutSchema.parse({
+        ...workout,
+        exercises: [
+          {
+            ...workout.exercises[0]!,
+            sets: [
+              { position: 0, reps: 5, loadKg: 80 },
+              { position: 0, reps: 5, loadKg: 82.5 },
+            ],
+          },
+        ],
+      }),
+    ).toThrow();
+  });
 });

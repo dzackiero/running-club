@@ -2,6 +2,7 @@ import { relations, sql } from "drizzle-orm";
 import type { PlanDetails } from "@running-club/shared";
 import {
   boolean,
+  type AnyPgColumn,
   date,
   index,
   integer,
@@ -400,6 +401,11 @@ export const weeklyGoal = pgTable(
   }),
 );
 
+// Explicit return types keep the mutually linked table declarations acyclic to
+// TypeScript while allowing Drizzle to emit both foreign keys after creation.
+const getPlanOccurrenceId = (): AnyPgColumn => planOccurrence.id;
+const getGymWorkoutId = (): AnyPgColumn => gymWorkout.id;
+
 export const planTemplate = pgTable(
   "plan_template",
   {
@@ -447,7 +453,10 @@ export const planOccurrence = pgTable(
     linkedRunId: text("linked_run_id").references(() => run.id, {
       onDelete: "set null",
     }),
-    linkedGymWorkoutId: text("linked_gym_workout_id"),
+    linkedGymWorkoutId: text("linked_gym_workout_id").references(
+      getGymWorkoutId,
+      { onDelete: "set null" },
+    ),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -474,7 +483,7 @@ export const gymWorkout = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
     planOccurrenceId: text("plan_occurrence_id").references(
-      () => planOccurrence.id,
+      getPlanOccurrenceId,
       { onDelete: "set null" },
     ),
     notes: text("notes"),
