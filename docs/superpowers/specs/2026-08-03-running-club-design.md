@@ -1,12 +1,14 @@
 # Running Club — Design Spec
 
 **Date:** 2026-08-03  
-**Status:** Approved for planning  
+**Status:** Historical — superseded<br>
 **Product focus (v1):** Personal running data layer for ChatGPT (MCP + API), not clubs yet
+
+> **Historical context only.** This design is superseded by the [Personal Training Dashboard Design](2026-08-18-personal-training-dashboard-design.md) (2026-08-18), which defines the active product direction. The club and Resend items below are retained only to show the original scope; they are not planned work.
 
 ## Problem
 
-ChatGPT memory is a weak store for training data: fuzzy, lossy, and not queryable. Runners need a durable source of truth that ChatGPT can read and write via MCP, with a real multi-user backend ready for clubs and Strava later.
+ChatGPT memory is a weak store for training data: fuzzy, lossy, and not queryable. Runners need a durable source of truth that ChatGPT can read and write via MCP, with individual ownership and an eventual Strava integration.
 
 ## Goals (v1)
 
@@ -196,8 +198,8 @@ Day-to-day logging can stay in ChatGPT. No heavy dashboard.
 ## Future phases
 
 1. **Strava** — OAuth link, activity pull, dedup via `externalId`
-2. **Clubs** — membership, shared weekly mileage aggregates
-3. **Resend** — email when personal (or club) weekly goal is behind
+2. ~~**Clubs** — membership, shared weekly mileage aggregates~~ *(removed from product direction)*
+3. ~~**Resend** — email when a weekly goal is behind~~ *(removed from product direction)*
 
 ## Success criteria (v1)
 

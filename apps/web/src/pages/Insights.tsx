@@ -495,7 +495,7 @@ export function Insights() {
             to="/"
             className="mt-3 inline-block text-base font-medium text-primary underline-offset-4 hover:underline"
           >
-            Back home
+            Back to Today
           </Link>
         </div>
       ) : (
@@ -576,12 +576,12 @@ export function Insights() {
 
         <div className="rounded-xl border border-border bg-card px-4 py-4 sm:px-5 sm:py-5">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-foreground">Goals</h2>
+            <h2 className="text-sm font-semibold text-foreground">Plan</h2>
             <Link
-              to="/goal"
+              to="/plan"
               className="text-sm font-medium text-primary underline-offset-4 hover:underline"
             >
-              {hasGoalWeeks ? "Edit" : "Set goal"}
+              {hasGoalWeeks ? "Edit plan" : "Set plan"}
             </Link>
           </div>
           {hasGoalWeeks ? (
@@ -591,7 +591,7 @@ export function Insights() {
             </div>
           ) : (
             <p className="mt-4 text-sm text-muted-foreground">
-              No weekly target in this range.
+              No weekly plan targets in this range.
             </p>
           )}
         </div>

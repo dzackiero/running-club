@@ -9,7 +9,7 @@ export const activityTypes = [
 ] as const;
 export type ActivityType = (typeof activityTypes)[number];
 
-/** Activity types that count toward club/goals/Insights/best efforts. */
+/** Activity types that count toward plans, insights, and best efforts. */
 export const runningActivityTypes = [
   "run",
   "trail",
