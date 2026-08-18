@@ -2,19 +2,20 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { app } from "../app";
 import { db } from "../db/client";
 import { run, user, weeklyGoal } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 const stamp = Date.now();
-const testEmail = `http-int-${stamp}@example.com`;
 const testPassword = "password123456";
 const testName = "HTTP Integration Runner";
 
-async function signUpAndGetCookie(): Promise<{ cookie: string; userId: string }> {
+async function signUpAndGetCookie(
+  suffix: string,
+): Promise<{ cookie: string; userId: string }> {
   const signUpRes = await app.request("/api/auth/sign-up/email", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      email: testEmail,
+      email: `http-int-${stamp}-${suffix}@example.com`,
       password: testPassword,
       name: testName,
     }),
@@ -34,13 +35,15 @@ async function signUpAndGetCookie(): Promise<{ cookie: string; userId: string }>
 describe("HTTP runs and goals", () => {
   let cookie: string;
   let userId: string;
+  const createdUserIds: string[] = [];
 
   beforeAll(async () => {
-    ({ cookie, userId } = await signUpAndGetCookie());
+    ({ cookie, userId } = await signUpAndGetCookie("primary"));
+    createdUserIds.push(userId);
   });
 
   afterAll(async () => {
-    await db.delete(user).where(eq(user.id, userId));
+    await db.delete(user).where(inArray(user.id, createdUserIds));
   });
 
   it("returns 401 for GET /runs without session", async () => {
@@ -133,6 +136,51 @@ describe("HTTP runs and goals", () => {
   it("returns 404 for GET /clubs", async () => {
     const res = await app.request("/clubs", { headers: { cookie } });
     expect(res.status).toBe(404);
+  });
+
+  it("creates personal templates, serves today, and isolates occurrence updates", async () => {
+    const createTemplateRes = await app.request("/plan/templates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", cookie },
+      body: JSON.stringify({
+        weekday: 2,
+        category: "gym",
+        title: "Tuesday strength",
+        details: { focus: "lower body" },
+      }),
+    });
+    expect(createTemplateRes.status).toBe(201);
+
+    const todayRes = await app.request(
+      "/insights/today?at=2026-08-04T12:00:00.000Z",
+      { headers: { cookie } },
+    );
+    expect(todayRes.status).toBe(200);
+    const today = await todayRes.json();
+    expect(today.items).toHaveLength(1);
+    expect(today.items[0].title).toBe("Tuesday strength");
+    expect(today.week.days).toHaveLength(7);
+
+    const ownedOccurrenceId = today.items[0].id as string;
+    const updateRes = await app.request(`/plan/occurrences/${ownedOccurrenceId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", cookie },
+      body: JSON.stringify({ status: "done" }),
+    });
+    expect(updateRes.status).toBe(200);
+    expect((await updateRes.json()).status).toBe("done");
+
+    const other = await signUpAndGetCookie("other");
+    createdUserIds.push(other.userId);
+    const forbiddenUpdateRes = await app.request(
+      `/plan/occurrences/${ownedOccurrenceId}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", cookie: other.cookie },
+        body: JSON.stringify({ status: "skipped" }),
+      },
+    );
+    expect(forbiddenUpdateRes.status).toBe(404);
   });
 
   it("retains run and weekly goal rows for the authenticated user", async () => {

@@ -18,6 +18,7 @@ import { getWeekBounds, shiftWeek } from "../lib/period";
 import { rankBestEfforts } from "./best-efforts";
 import { getCurrentGoal } from "./goals";
 import { computeWeeklyStreak } from "./weekly-streak";
+export { getTodayDashboard } from "./plans";
 
 export type { WeekProgress, InsightsOverview };
 

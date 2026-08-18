@@ -13,9 +13,20 @@ import {
   getSummary,
   getWeekProgress,
   getInsightsOverview,
+  getTodayDashboard,
 } from "../services/insights";
 
 export const insightsRoutes = new Hono<AppEnv>();
+
+insightsRoutes.get("/today", async (c) => {
+  const at = c.req.query("at");
+  const date = at ? new Date(at) : new Date();
+  if (Number.isNaN(date.getTime())) {
+    return jsonError(c, 400, errorCodes.VALIDATION, "at must be a valid ISO date");
+  }
+  const user = c.get("user")!;
+  return c.json(await getTodayDashboard(user.id, date));
+});
 
 insightsRoutes.get("/summary", async (c) => {
   const { from, to } = c.req.query();

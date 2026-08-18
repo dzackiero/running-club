@@ -18,6 +18,7 @@ import { goalsRoutes } from "./routes/goals";
 import { insightsRoutes } from "./routes/insights";
 import { integrationsRoutes } from "./routes/integrations";
 import { preferencesRoutes } from "./routes/preferences";
+import { plansRoutes } from "./routes/plans";
 import { runsRoutes } from "./routes/runs";
 
 export type AppEnv = {
@@ -107,6 +108,10 @@ app.route("/runs", runsRoutes);
 app.use("/goals", requireUser);
 app.use("/goals/*", requireUser);
 app.route("/goals", goalsRoutes);
+
+app.use("/plan", requireUser);
+app.use("/plan/*", requireUser);
+app.route("/plan", plansRoutes);
 
 app.use("/insights", requireUser);
 app.use("/insights/*", requireUser);
