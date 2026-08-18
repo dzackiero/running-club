@@ -1,6 +1,8 @@
-# CUP Run
+# CUP Run — Personal Training
 
-Personal running log with a REST API and **remote MCP server** for ChatGPT. Store runs, set weekly goals, join private clubs with km boards, and query stats from ChatGPT via OAuth — no pasted API keys.
+Personal training companion with a REST API and **remote MCP server** for ChatGPT. Track runs, set weekly targets, import activity from Intervals.icu, and query your training data through OAuth — no pasted API keys.
+
+The product direction is documented in the [personal training dashboard design](docs/superpowers/specs/2026-08-18-personal-training-dashboard-design.md).
 
 ## Stack
 
@@ -32,8 +34,6 @@ cp .env.example .env
 | `VITE_API_URL` | API base URL the browser calls (e.g. `http://localhost:8787`) |
 | `GOOGLE_CLIENT_ID` | Optional. Google OAuth client ID for “Continue with Google” |
 | `GOOGLE_CLIENT_SECRET` | Optional. Google OAuth client secret |
-| `RESEND_API_KEY` | Optional. Sends club miss emails after a week/month ends |
-| `EMAIL_FROM` | Optional. From address, e.g. `CUP Run <onboarding@resend.dev>` |
 
 ### 2. Install and database
 
@@ -66,7 +66,7 @@ Open http://localhost:4173 → Chrome/Edge install icon, or mobile browser **Add
 
 ### 4. Create an account
 
-Open the web app → sign up at `/sign-up` (email/password or Google). Use `/goal` to set a weekly target and `/` to view run history. Add runs via ChatGPT/Claude MCP or Intervals import.
+Open the web app → sign up at `/sign-up` (email/password or Google). Use `/plan` to set a weekly target and `/` for Today and recent activity. Add runs via ChatGPT/Claude MCP or Intervals import.
 
 ### 5. Google sign-in (optional)
 
@@ -124,7 +124,7 @@ ChatGPT discovers OAuth via protected-resource metadata and redirects you to sig
 
 The web app’s **Connect** page (`/connect`) shows the same URL and steps.
 
-### MCP tools (v1)
+### MCP tools
 
 | Tool | Description |
 |---|---|
@@ -148,15 +148,12 @@ The web app’s **Connect** page (`/connect`) shows the same URL and steps.
 | `pnpm build:web` | Build web SPA (Dokploy Railpack) |
 | `pnpm --filter @running-club/api db:push` | Push Drizzle schema to Postgres |
 
-## v1 non-goals
-
-Not implemented in v1 (schema may be forward-compatible):
+## Current boundaries
 
 - **Strava** OAuth sync
-- **Running clubs** / shared mileage
-- **Email** notifications (Resend)
-- Deep coaching / stored training plans
-- Heavy dashboard UI (ChatGPT is the primary interface)
+- Social, sharing, and group features
+- Fully automatic food logging without user review
+- Advanced coaching recommendations and recovery scoring
 
 ## Project layout
 

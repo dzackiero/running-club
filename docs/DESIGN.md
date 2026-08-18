@@ -1,8 +1,8 @@
 # CUP Run — Design System
 
 **Direction:** Track chalk / daylight stadium (theme 2)  
-**Product:** Personal running log (REST + ChatGPT MCP companion)  
-**UI role:** Thin account / goals / history / connect — not a marketing site
+**Product:** Personal training companion (REST + ChatGPT MCP companion)
+**UI role:** Today-first dashboard for personal plans, activity, and progress — not a marketing site
 
 ## Intent
 
@@ -73,14 +73,14 @@ Load via Google Fonts or `fontsource` in `apps/web`. Prefer `font-variant-numeri
 
 - Max content width ~720–800px centered (tool, not dashboard wall).
 - Header: brand left, text nav right — no mega-menu.
-- Home: one weekly progress block → recent runs list. No stat-card strip.
+- Today: daily agenda and a weekly progress block → recent activity. No stat-card strip.
 - Forms: single column, calm labels above inputs.
 - Radius: `0.375rem–0.5rem` (slightly soft, not pill).
 - Spacing: prefer vertical rhythm over boxed sections.
 
 ```
 ┌──────────────────────────────────┐
-│ CUP Run               Goal Connect│
+│ CUP Run               Plan Connect│
 ├──────────────────────────────────┤
 │ THIS WEEK                        │
 │ 42.3 km          ████████░░ 50km │  ← condensed stats
@@ -118,7 +118,7 @@ Plain and short, like a running buddy — not a product brochure. Say what to do
 
 ## Implementation notes
 
-- Source of truth for product UI: this file + CSS variables in `apps/web/src/index.css`.
+- Source of truth for product UI: this file, the [personal training dashboard design](superpowers/specs/2026-08-18-personal-training-dashboard-design.md), and CSS variables in `apps/web/src/index.css`.
 - Component kit: **shadcn/ui** (Radix Nova) in `apps/web` — use `button`, `input`, `label`, `separator`, `alert` first.
 - Env stays in repo-root `.env` (Vite `envDir` = monorepo root).
 - Fonts: `@fontsource-variable/dm-sans`, `@fontsource/barlow-condensed`.
