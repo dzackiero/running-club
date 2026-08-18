@@ -162,7 +162,9 @@ export async function importFromIntervals(
       source: "intervals",
       externalId: mapped.externalId,
     });
-    await linkImportedRunToOccurrence(userId, result.run);
+    if (isRunningActivityType(payload.activityType)) {
+      await linkImportedRunToOccurrence(userId, result.run);
+    }
     if (result.created) imported += 1;
     else updated += 1;
   }

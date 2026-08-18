@@ -436,4 +436,38 @@ describe("importFromIntervals", () => {
       null,
     ]);
   });
+
+  it("does not complete a planned run when the imported activity is a walk", async () => {
+    const occurrenceId = crypto.randomUUID();
+    await db.insert(planOccurrence).values({
+      id: occurrenceId,
+      userId,
+      date: "2026-07-13",
+      category: "run",
+      title: "Monday run",
+      details: {},
+    });
+
+    await importFromIntervals(userId, {
+      listActivities: async () => [
+        {
+          id: "i-walk-does-not-link",
+          type: "Walk",
+          name: "Morning walk",
+          start_date: "2026-07-13T05:30:00.000Z",
+          distance: 3000,
+          moving_time: 2400,
+        },
+      ],
+    });
+
+    const [occurrence] = await db
+      .select()
+      .from(planOccurrence)
+      .where(eq(planOccurrence.id, occurrenceId));
+    expect(occurrence).toMatchObject({
+      status: "planned",
+      linkedRunId: null,
+    });
+  });
 });
