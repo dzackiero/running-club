@@ -48,17 +48,10 @@ export function Layout() {
   const nav = user ? (
     <>
       <NavLink to="/" end className={navLinkClass} onClick={() => setMenuOpen(false)}>
-        Home
+        Today
       </NavLink>
-      <NavLink to="/goal" className={navLinkClass} onClick={() => setMenuOpen(false)}>
-        Goal
-      </NavLink>
-      <NavLink
-        to="/clubs"
-        className={navLinkClass}
-        onClick={() => setMenuOpen(false)}
-      >
-        Clubs
+      <NavLink to="/plan" className={navLinkClass} onClick={() => setMenuOpen(false)}>
+        Plan
       </NavLink>
       <NavLink
         to="/insights"

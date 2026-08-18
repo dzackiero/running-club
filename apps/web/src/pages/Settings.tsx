@@ -222,8 +222,7 @@ export function Settings() {
         <div className="space-y-2">
           <Label htmlFor="week-starts">Week starts on</Label>
           <p className="text-xs text-muted-foreground">
-            Personal Home and Insights only. Club boards use each club’s own week
-            start.
+            Today and Insights use this selected week start.
           </p>
           {loadingWeek ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
@@ -252,7 +251,7 @@ export function Settings() {
           <div>
             <p className="text-sm font-medium">Email notifications</p>
             <p className="text-xs text-muted-foreground">
-              Club miss emails and other CUP Run mail. Turn off to stop all emails.
+              CUP Run email. Turn off to stop all emails.
             </p>
           </div>
           <Switch

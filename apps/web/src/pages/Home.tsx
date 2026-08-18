@@ -237,13 +237,7 @@ function WeekSnapshot({
           <ProgressBar ratio={primaryRatio} />
         ) : weekOffset === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No weekly target yet.{" "}
-            <Link
-              to="/goal"
-              className="font-medium text-primary underline-offset-4 hover:underline"
-            >
-              Set one
-            </Link>
+            Set up your recurring plan to see gym and nutrition here.
           </p>
         ) : null}
       </div>
@@ -412,7 +406,7 @@ export function Home() {
   return (
     <section className="space-y-8">
       <div className="space-y-4">
-        <h1 className="sr-only">Home</h1>
+        <h1 className="sr-only">Today</h1>
         <WeekSnapshot
           progress={week}
           weekOffset={weekOffset}
@@ -432,13 +426,13 @@ export function Home() {
       >
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-xs font-semibold tracking-wide text-primary uppercase">
-            Runs
+            This week
           </h2>
           <Link
-            to="/goal"
+            to="/plan"
             className="px-1 text-sm text-primary underline-offset-4 hover:underline"
           >
-            Goal
+            Plan
           </Link>
         </div>
         <Separator className="mb-1" />

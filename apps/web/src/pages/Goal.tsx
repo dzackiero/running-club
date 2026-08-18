@@ -103,9 +103,9 @@ export function Goal() {
   return (
     <section className="mx-auto w-full max-w-lg space-y-8">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Weekly goal</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Weekly plan</h1>
         <p className="text-sm text-muted-foreground">
-          Choose what you want to hit this week. You can leave some off.
+          Set the running targets that support your recurring plan. You can leave some off.
         </p>
       </div>
 
