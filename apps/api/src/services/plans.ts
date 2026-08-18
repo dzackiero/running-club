@@ -192,6 +192,49 @@ export async function updatePlanOccurrence(
   return row ? toPlanOccurrenceRecord(row) : null;
 }
 
+export async function linkSinglePlannedRunOccurrence(
+  userId: string,
+  date: string,
+  runId: string,
+): Promise<"linked" | "ambiguous" | "none"> {
+  return db.transaction(async (tx) => {
+    const candidates = await tx
+      .select({ id: planOccurrence.id })
+      .from(planOccurrence)
+      .where(
+        and(
+          eq(planOccurrence.userId, userId),
+          eq(planOccurrence.date, date),
+          eq(planOccurrence.category, "run"),
+          eq(planOccurrence.status, "planned"),
+        ),
+      );
+
+    if (candidates.length === 0) return "none";
+    if (candidates.length > 1) return "ambiguous";
+
+    const now = new Date();
+    const linked = await tx
+      .update(planOccurrence)
+      .set({
+        status: "done",
+        linkedRunId: runId,
+        completedAt: now,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(planOccurrence.id, candidates[0]!.id),
+          eq(planOccurrence.userId, userId),
+          eq(planOccurrence.category, "run"),
+          eq(planOccurrence.status, "planned"),
+        ),
+      )
+      .returning({ id: planOccurrence.id });
+    return linked.length === 1 ? "linked" : "none";
+  });
+}
+
 export async function getTodayDashboard(
   userId: string,
   date: Date,

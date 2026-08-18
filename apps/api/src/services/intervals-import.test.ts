@@ -1,6 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { and, eq } from "drizzle-orm";
+import { db } from "../db/client";
+import { planOccurrence } from "../db/schema";
 import { IntervalsHttpError } from "../integrations/intervals/errors";
-import { importFromIntervals } from "./intervals-import";
+import {
+  importFromIntervals,
+  linkImportedRunToOccurrence,
+} from "./intervals-import";
 import { getRun, listRuns, upsertImportedRun } from "./runs";
 import { deleteTestUsers, ensureTestUsers } from "../test/users";
 
@@ -343,5 +349,91 @@ describe("importFromIntervals", () => {
         },
       }),
     ).rejects.toMatchObject({ status: 429 });
+  });
+
+  it("completes the one planned run on the imported run's scheduled date", async () => {
+    const occurrenceId = crypto.randomUUID();
+    await db.insert(planOccurrence).values({
+      id: occurrenceId,
+      userId,
+      date: "2026-07-11",
+      category: "run",
+      title: "Saturday run",
+      details: { targetDistanceMeters: 5000 },
+    });
+
+    await importFromIntervals(userId, {
+      listActivities: async () => [
+        {
+          id: "i-link-single",
+          type: "Run",
+          name: "Saturday run",
+          start_date: "2026-07-11T05:30:00.000Z",
+          distance: 3000,
+          moving_time: 900,
+        },
+      ],
+    });
+
+    const [occurrence] = await db
+      .select()
+      .from(planOccurrence)
+      .where(eq(planOccurrence.id, occurrenceId));
+    expect(occurrence).toMatchObject({ status: "done" });
+    expect(occurrence?.linkedRunId).toBeTruthy();
+  });
+
+  it("leaves planned runs untouched when imported-run matching is ambiguous", async () => {
+    const occurrenceIds = [crypto.randomUUID(), crypto.randomUUID()];
+    await db.insert(planOccurrence).values(
+      occurrenceIds.map((id, index) => ({
+        id,
+        userId,
+        date: "2026-07-12",
+        category: "run" as const,
+        title: `Candidate ${index + 1}`,
+        details: {},
+      })),
+    );
+
+    await importFromIntervals(userId, {
+      listActivities: async () => [
+        {
+          id: "i-link-ambiguous",
+          type: "Run",
+          name: "Sunday run",
+          start_date: "2026-07-12T05:30:00.000Z",
+          distance: 10000,
+          moving_time: 3600,
+        },
+      ],
+    });
+
+    const imported = (await listRuns(userId, {})).find(
+      (run) => run.externalId === "i-link-ambiguous",
+    );
+    expect(imported).toBeTruthy();
+    await expect(linkImportedRunToOccurrence(userId, imported!)).resolves.toBe(
+      "ambiguous",
+    );
+
+    const candidates = await db
+      .select()
+      .from(planOccurrence)
+      .where(
+        and(
+          eq(planOccurrence.userId, userId),
+          eq(planOccurrence.date, "2026-07-12"),
+        ),
+      );
+    expect(candidates).toHaveLength(2);
+    expect(candidates.map((candidate) => candidate.status)).toEqual([
+      "planned",
+      "planned",
+    ]);
+    expect(candidates.map((candidate) => candidate.linkedRunId)).toEqual([
+      null,
+      null,
+    ]);
   });
 });

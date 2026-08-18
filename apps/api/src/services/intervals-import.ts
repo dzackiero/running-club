@@ -1,4 +1,4 @@
-import type { CreateRunInput, RunStreams } from "@running-club/shared";
+import type { CreateRunInput, RunRecord, RunStreams } from "@running-club/shared";
 import { isRunningActivityType } from "@running-club/shared";
 import { IntervalsHttpError } from "../integrations/intervals/errors";
 import { mapIntervalsActivityToRun } from "../integrations/intervals/map-activity";
@@ -12,6 +12,7 @@ import {
   type IntervalsStream,
 } from "../integrations/intervals/map-streams";
 import { logger } from "../lib/logger";
+import { linkSinglePlannedRunOccurrence } from "./plans";
 import { findRunByExternalId, upsertImportedRun } from "./runs";
 
 export type IntervalsImportClient = {
@@ -161,11 +162,21 @@ export async function importFromIntervals(
       source: "intervals",
       externalId: mapped.externalId,
     });
+    await linkImportedRunToOccurrence(userId, result.run);
     if (result.created) imported += 1;
     else updated += 1;
   }
 
   return { imported, updated, skipped };
+}
+
+/** Links only the sole planned run occurrence on the run's scheduled date. */
+export async function linkImportedRunToOccurrence(
+  userId: string,
+  run: Pick<RunRecord, "id" | "startedAt">,
+): Promise<"linked" | "ambiguous" | "none"> {
+  const date = new Date(run.startedAt).toISOString().slice(0, 10);
+  return linkSinglePlannedRunOccurrence(userId, date, run.id);
 }
 
 function summaryOnly(input: CreateRunInput): CreateRunInput {
