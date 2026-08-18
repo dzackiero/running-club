@@ -4,9 +4,9 @@ import { Layout } from "./components/Layout";
 import { RequireAuth } from "./components/RequireAuth";
 import { Connect } from "./pages/Connect";
 import { Consent } from "./pages/Consent";
-import { Goal } from "./pages/Goal";
 import { Home } from "./pages/Home";
 import { Insights } from "./pages/Insights";
+import { Plan } from "./pages/Plan";
 import { RunDetail } from "./pages/RunDetail";
 import { Settings } from "./pages/Settings";
 import { SignIn } from "./pages/SignIn";
@@ -25,7 +25,7 @@ export default function App() {
           <Route element={<RequireAuth />}>
             <Route index element={<Home />} />
             <Route path="/runs/:id" element={<RunDetail />} />
-            <Route path="/plan" element={<Goal />} />
+            <Route path="/plan" element={<Plan />} />
             <Route path="/goal" element={<Navigate to="/plan" replace />} />
             <Route path="/insights" element={<Insights />} />
             <Route path="/settings" element={<Settings />} />

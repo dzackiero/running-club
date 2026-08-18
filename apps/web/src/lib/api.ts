@@ -1,8 +1,14 @@
 import type {
+  CreateGymWorkoutInput,
+  CreatePlanTemplateInput,
+  GymWorkoutRecord,
   InsightsBestEfforts,
   InsightsOverview,
+  PlanOccurrenceRecord,
+  PlanTemplateRecord,
   PreferencesRecord,
   RunRecord,
+  UpdatePlanOccurrenceInput,
   UpdatePreferencesInput,
   UpdateRunInput,
   UpsertWeeklyGoalInput,
@@ -43,12 +49,32 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export type {
+  GymWorkoutRecord,
+  PlanOccurrenceRecord,
+  PlanTemplateRecord,
   PreferencesRecord,
   RunRecord,
   WeeklyGoalRecord,
   WeekProgress,
   InsightsOverview,
   InsightsBestEfforts,
+};
+
+export type TodayDashboard = {
+  date: string;
+  items: PlanOccurrenceRecord[];
+  week: {
+    start: string;
+    end: string;
+    days: Array<{ date: string; items: PlanOccurrenceRecord[] }>;
+    running: {
+      distanceMeters: number;
+      completedSessions: number;
+      plannedSessions: number;
+    };
+    gym: { completedSessions: number; plannedSessions: number };
+    nutrition: { targetDays: number; achievedDays: number };
+  };
 };
 
 export type ListRunsOptions = {
@@ -161,5 +187,38 @@ export function disconnectIntervals() {
 export function importIntervalsActivities() {
   return apiFetch<IntervalsImportResult>("/integrations/intervals/import", {
     method: "POST",
+  });
+}
+
+export function getTodayDashboard(at?: string) {
+  const qs = at ? `?at=${encodeURIComponent(at)}` : "";
+  return apiFetch<TodayDashboard>(`/insights/today${qs}`);
+}
+
+export function listPlanTemplates() {
+  return apiFetch<PlanTemplateRecord[]>("/plan/templates");
+}
+
+export function createPlanTemplate(body: CreatePlanTemplateInput) {
+  return apiFetch<PlanTemplateRecord>("/plan/templates", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function patchPlanOccurrence(
+  id: string,
+  body: UpdatePlanOccurrenceInput,
+) {
+  return apiFetch<PlanOccurrenceRecord>(`/plan/occurrences/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export function createGymWorkout(body: CreateGymWorkoutInput) {
+  return apiFetch<GymWorkoutRecord>("/gym/workouts", {
+    method: "POST",
+    body: JSON.stringify(body),
   });
 }
