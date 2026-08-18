@@ -1,6 +1,8 @@
 import { relations, sql } from "drizzle-orm";
+import type { PlanDetails } from "@running-club/shared";
 import {
   boolean,
+  date,
   index,
   integer,
   jsonb,
@@ -212,6 +214,9 @@ export const userRelations = relations(user, ({ many }) => ({
   oauthAccessTokens: many(oauthAccessToken),
   oauthConsents: many(oauthConsent),
   integrations: many(userIntegration),
+  planTemplates: many(planTemplate),
+  planOccurrences: many(planOccurrence),
+  gymWorkouts: many(gymWorkout),
 }));
 
 export const sessionRelations = relations(session, ({ one, many }) => ({
@@ -394,3 +399,184 @@ export const weeklyGoal = pgTable(
       .where(sql`${t.active} = true`),
   }),
 );
+
+export const planTemplate = pgTable(
+  "plan_template",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    weekday: integer("weekday").notNull(),
+    category: text("category").notNull(),
+    title: text("title").notNull(),
+    details: jsonb("details").$type<PlanDetails["details"]>().notNull(),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    userWeekdayIdx: index("plan_template_user_weekday_idx").on(
+      t.userId,
+      t.weekday,
+    ),
+  }),
+);
+
+export const planOccurrence = pgTable(
+  "plan_occurrence",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    templateId: text("template_id").references(() => planTemplate.id, {
+      onDelete: "set null",
+    }),
+    date: date("date").notNull(),
+    category: text("category").notNull(),
+    title: text("title").notNull(),
+    details: jsonb("details").$type<PlanDetails["details"]>().notNull(),
+    status: text("status").notNull().default("planned"),
+    overriddenAt: timestamp("overridden_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    linkedRunId: text("linked_run_id").references(() => run.id, {
+      onDelete: "set null",
+    }),
+    linkedGymWorkoutId: text("linked_gym_workout_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    userDateIdx: index("plan_occurrence_user_date_idx").on(t.userId, t.date),
+    userTemplateDateUid: uniqueIndex("plan_occurrence_user_template_date_uid").on(
+      t.userId,
+      t.templateId,
+      t.date,
+    ),
+  }),
+);
+
+export const gymWorkout = pgTable(
+  "gym_workout",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    planOccurrenceId: text("plan_occurrence_id").references(
+      () => planOccurrence.id,
+      { onDelete: "set null" },
+    ),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    userOccurredAtIdx: index("gym_workout_user_occurred_at_idx").on(
+      t.userId,
+      t.occurredAt,
+    ),
+  }),
+);
+
+export const gymExercise = pgTable(
+  "gym_exercise",
+  {
+    id: text("id").primaryKey(),
+    workoutId: text("workout_id")
+      .notNull()
+      .references(() => gymWorkout.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    position: integer("position").notNull(),
+  },
+  (t) => ({
+    workoutPositionUid: uniqueIndex("gym_exercise_workout_position_uid").on(
+      t.workoutId,
+      t.position,
+    ),
+  }),
+);
+
+export const gymSet = pgTable(
+  "gym_set",
+  {
+    id: text("id").primaryKey(),
+    exerciseId: text("exercise_id")
+      .notNull()
+      .references(() => gymExercise.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+    reps: integer("reps").notNull(),
+    loadKg: real("load_kg").notNull(),
+    rpe: real("rpe"),
+  },
+  (t) => ({
+    exercisePositionUid: uniqueIndex("gym_set_exercise_position_uid").on(
+      t.exerciseId,
+      t.position,
+    ),
+  }),
+);
+
+export const planTemplateRelations = relations(planTemplate, ({ one, many }) => ({
+  user: one(user, {
+    fields: [planTemplate.userId],
+    references: [user.id],
+  }),
+  occurrences: many(planOccurrence),
+}));
+
+export const planOccurrenceRelations = relations(
+  planOccurrence,
+  ({ one, many }) => ({
+    user: one(user, {
+      fields: [planOccurrence.userId],
+      references: [user.id],
+    }),
+    template: one(planTemplate, {
+      fields: [planOccurrence.templateId],
+      references: [planTemplate.id],
+    }),
+    gymWorkouts: many(gymWorkout),
+  }),
+);
+
+export const gymWorkoutRelations = relations(gymWorkout, ({ one, many }) => ({
+  user: one(user, {
+    fields: [gymWorkout.userId],
+    references: [user.id],
+  }),
+  planOccurrence: one(planOccurrence, {
+    fields: [gymWorkout.planOccurrenceId],
+    references: [planOccurrence.id],
+  }),
+  exercises: many(gymExercise),
+}));
+
+export const gymExerciseRelations = relations(gymExercise, ({ one, many }) => ({
+  workout: one(gymWorkout, {
+    fields: [gymExercise.workoutId],
+    references: [gymWorkout.id],
+  }),
+  sets: many(gymSet),
+}));
+
+export const gymSetRelations = relations(gymSet, ({ one }) => ({
+  exercise: one(gymExercise, {
+    fields: [gymSet.exerciseId],
+    references: [gymExercise.id],
+  }),
+}));

@@ -1,0 +1,127 @@
+import { z } from "zod";
+
+export const planCategorySchema = z.enum(["run", "gym", "nutrition"]);
+export type PlanCategory = z.infer<typeof planCategorySchema>;
+
+export const planStatusSchema = z.enum(["planned", "done", "skipped"]);
+export type PlanStatus = z.infer<typeof planStatusSchema>;
+
+export const runPlanDetailsSchema = z
+  .object({
+    targetDistanceMeters: z.number().positive().optional(),
+    targetDurationSeconds: z.number().int().positive().optional(),
+    targetPaceSecPerKm: z.number().positive().optional(),
+    notes: z.string().max(2000).optional(),
+  })
+  .strict();
+
+export const gymPlanDetailsSchema = z
+  .object({
+    templateName: z.string().min(1).max(200).optional(),
+    focus: z.string().min(1).max(200).optional(),
+    notes: z.string().max(2000).optional(),
+  })
+  .strict();
+
+export const nutritionPlanDetailsSchema = z
+  .object({
+    targetCalories: z.number().positive().optional(),
+    targetProteinGrams: z.number().positive().optional(),
+    targetCarbsGrams: z.number().positive().optional(),
+    targetFatGrams: z.number().positive().optional(),
+    notes: z.string().max(2000).optional(),
+  })
+  .strict();
+
+/**
+ * Category-specific metadata is deliberately represented as a discriminated
+ * union so an occurrence can safely retain its materialized category/details.
+ */
+export const planDetailsSchema = z.discriminatedUnion("category", [
+  z.object({ category: z.literal("run"), details: runPlanDetailsSchema }),
+  z.object({ category: z.literal("gym"), details: gymPlanDetailsSchema }),
+  z.object({
+    category: z.literal("nutrition"),
+    details: nutritionPlanDetailsSchema,
+  }),
+]);
+export type PlanDetails = z.infer<typeof planDetailsSchema>;
+
+export const createPlanTemplateSchema = z
+  .object({
+    weekday: z.number().int().min(0).max(6),
+    title: z.string().min(1).max(200),
+  })
+  .and(planDetailsSchema);
+export type CreatePlanTemplateInput = z.infer<typeof createPlanTemplateSchema>;
+
+const occurrenceUpdateDetailsSchema = z.union([
+  runPlanDetailsSchema,
+  gymPlanDetailsSchema,
+  nutritionPlanDetailsSchema,
+]);
+
+export const updatePlanOccurrenceSchema = z
+  .object({
+    status: planStatusSchema.optional(),
+    title: z.string().min(1).max(200).optional(),
+    category: planCategorySchema.optional(),
+    details: occurrenceUpdateDetailsSchema.optional(),
+  })
+  .superRefine((value, context) => {
+    if (Object.keys(value).length === 0) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "Update required" });
+    }
+
+    const hasCategory = value.category !== undefined;
+    const hasDetails = value.details !== undefined;
+    if (hasCategory !== hasDetails) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "category and details must be updated together",
+      });
+      return;
+    }
+
+    if (hasCategory && hasDetails) {
+      const result = planDetailsSchema.safeParse({
+        category: value.category,
+        details: value.details,
+      });
+      if (!result.success) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "details do not match category",
+          path: ["details"],
+        });
+      }
+    }
+  });
+export type UpdatePlanOccurrenceInput = z.infer<
+  typeof updatePlanOccurrenceSchema
+>;
+
+export type PlanTemplateRecord = PlanDetails & {
+  id: string;
+  userId: string;
+  weekday: number;
+  title: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PlanOccurrenceRecord = PlanDetails & {
+  id: string;
+  userId: string;
+  templateId: string | null;
+  date: string;
+  title: string;
+  status: PlanStatus;
+  overriddenAt: string | null;
+  completedAt: string | null;
+  linkedRunId: string | null;
+  linkedGymWorkoutId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};

@@ -4,3 +4,5 @@ export * from "./goal";
 export * from "./preferences";
 export * from "./insights";
 export * from "./errors";
+export * from "./plan";
+export * from "./gym";
