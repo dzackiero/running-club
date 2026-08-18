@@ -112,6 +112,13 @@ describe("MCP tool handlers", () => {
   });
 
   it("get_weekly_progress includes totals and goal", async () => {
+    await handleLogRun(userId, {
+      startedAt: new Date().toISOString(),
+      distanceMeters: 5000,
+      durationSeconds: 1500,
+      activityType: "run",
+    });
+
     const result = await handleGetWeeklyProgress(userId, {});
     const progress = JSON.parse(textContent(result));
     expect(progress.totals.runCount).toBeGreaterThanOrEqual(1);
