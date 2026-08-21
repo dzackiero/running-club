@@ -101,27 +101,63 @@ export type UpdatePlanOccurrenceInput = z.infer<
   typeof updatePlanOccurrenceSchema
 >;
 
-export type PlanTemplateRecord = PlanDetails & {
-  id: string;
-  userId: string;
-  weekday: number;
-  title: string;
-  active: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
+export const planTemplateRecordSchema = planDetailsSchema.and(
+  z.object({
+    id: z.string(),
+    userId: z.string(),
+    weekday: z.number().int().min(0).max(6),
+    title: z.string().min(1).max(200),
+    active: z.boolean(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  }),
+);
+export type PlanTemplateRecord = z.infer<typeof planTemplateRecordSchema>;
 
-export type PlanOccurrenceRecord = PlanDetails & {
-  id: string;
-  userId: string;
-  templateId: string | null;
-  date: string;
-  title: string;
-  status: PlanStatus;
-  overriddenAt: string | null;
-  completedAt: string | null;
-  linkedRunId: string | null;
-  linkedGymWorkoutId: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
+export const planOccurrenceRecordSchema = planDetailsSchema.and(
+  z.object({
+    id: z.string(),
+    userId: z.string(),
+    templateId: z.string().nullable(),
+    date: z.string(),
+    title: z.string().min(1).max(200),
+    status: planStatusSchema,
+    overriddenAt: z.string().nullable(),
+    completedAt: z.string().nullable(),
+    linkedRunId: z.string().nullable(),
+    linkedGymWorkoutId: z.string().nullable(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  }),
+);
+export type PlanOccurrenceRecord = z.infer<typeof planOccurrenceRecordSchema>;
+
+export const planDaySchema = z.object({
+  date: z.string(),
+  items: z.array(planOccurrenceRecordSchema),
+});
+export type PlanDay = z.infer<typeof planDaySchema>;
+
+export const todayDashboardSchema = z.object({
+  date: z.string(),
+  items: z.array(planOccurrenceRecordSchema),
+  week: z.object({
+    start: z.string(),
+    end: z.string(),
+    days: z.array(planDaySchema),
+    running: z.object({
+      distanceMeters: z.number().nonnegative(),
+      completedSessions: z.number().int().nonnegative(),
+      plannedSessions: z.number().int().nonnegative(),
+    }),
+    gym: z.object({
+      completedSessions: z.number().int().nonnegative(),
+      plannedSessions: z.number().int().nonnegative(),
+    }),
+    nutrition: z.object({
+      targetDays: z.number().int().nonnegative(),
+      achievedDays: z.number().int().nonnegative(),
+    }),
+  }),
+});
+export type TodayDashboard = z.infer<typeof todayDashboardSchema>;

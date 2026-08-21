@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { MoreVertical } from "lucide-react";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { ActivityIcon, activityLabel } from "@/lib/activity";
 import { deleteRun, getTodayDashboard, listRuns, type PlanOccurrenceRecord, type RunRecord, type TodayDashboard } from "@/lib/api";
 import { formatDateParts, formatDurationClock, formatKm, formatPace } from "@/lib/format";
+import { createLatestRequestGuard } from "@/lib/latest-request";
 
 function RunRow({ run, onEdit, onDeleted }: { run: RunRecord; onEdit: (run: RunRecord) => void; onDeleted: () => void }) {
   const { date, weekday } = formatDateParts(run.startedAt);
@@ -35,9 +36,12 @@ export function Home() {
   const [error, setError] = useState<string | null>(null);
   const [editingRun, setEditingRun] = useState<RunRecord | null>(null);
   const [gymOccurrence, setGymOccurrence] = useState<PlanOccurrenceRecord | null>(null);
+  const refreshGuard = useRef(createLatestRequestGuard());
   const refresh = useCallback(async () => {
-    setLoading(true);
+    const requestId = refreshGuard.current.begin();
+    if (refreshGuard.current.isLatest(requestId)) setLoading(true);
     const [todayResult, runsResult] = await Promise.allSettled([getTodayDashboard(), listRuns({ limit: 10 })]);
+    if (!refreshGuard.current.isLatest(requestId)) return;
     if (todayResult.status === "fulfilled") { setDashboard(todayResult.value); setError(null); }
     else setError(todayResult.reason instanceof Error ? todayResult.reason.message : "Failed to load today");
     if (runsResult.status === "fulfilled") setRuns(runsResult.value);

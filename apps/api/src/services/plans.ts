@@ -3,6 +3,7 @@ import type {
   PlanDetails,
   PlanOccurrenceRecord,
   PlanTemplateRecord,
+  TodayDashboard,
   UpdatePlanOccurrenceInput,
 } from "@running-club/shared";
 import { and, asc, eq, gte, lte } from "drizzle-orm";
@@ -12,34 +13,6 @@ import { getWeekBounds } from "../lib/period";
 
 type PlanTemplateRow = typeof planTemplate.$inferSelect;
 type PlanOccurrenceRow = typeof planOccurrence.$inferSelect;
-
-export type PlanDay = {
-  date: string;
-  items: PlanOccurrenceRecord[];
-};
-
-export type TodayDashboard = {
-  date: string;
-  items: PlanOccurrenceRecord[];
-  week: {
-    start: string;
-    end: string;
-    days: PlanDay[];
-    running: {
-      distanceMeters: number;
-      completedSessions: number;
-      plannedSessions: number;
-    };
-    gym: {
-      completedSessions: number;
-      plannedSessions: number;
-    };
-    nutrition: {
-      targetDays: number;
-      achievedDays: number;
-    };
-  };
-};
 
 function dateKey(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -263,7 +236,7 @@ export async function getTodayDashboard(
     byDate.set(occurrence.date, items);
   }
 
-  const days: PlanDay[] = [];
+  const days: TodayDashboard["week"]["days"] = [];
   for (let cursor = new Date(weekStart); cursor <= weekEnd; cursor = new Date(cursor)) {
     const key = dateKey(cursor);
     days.push({ date: key, items: byDate.get(key) ?? [] });

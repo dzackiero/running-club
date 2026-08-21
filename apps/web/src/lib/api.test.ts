@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import * as api from "./api";
+import { getTodayDashboard } from "./api";
 
 const dashboard = {
   date: "2026-08-18",
@@ -24,10 +24,6 @@ describe("personal training API client", () => {
       new Response(JSON.stringify(dashboard), { status: 200 }),
     );
     vi.stubGlobal("fetch", fetchMock);
-
-    const getTodayDashboard = (api as Record<string, unknown>)[
-      "getTodayDashboard"
-    ] as (at?: string) => Promise<unknown>;
 
     await expect(getTodayDashboard("2026-08-18")).resolves.toEqual(dashboard);
     expect(fetchMock).toHaveBeenCalledWith(

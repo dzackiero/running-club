@@ -8,6 +8,7 @@ import type {
   PlanTemplateRecord,
   PreferencesRecord,
   RunRecord,
+  TodayDashboard,
   UpdatePlanOccurrenceInput,
   UpdatePreferencesInput,
   UpdateRunInput,
@@ -58,23 +59,7 @@ export type {
   WeekProgress,
   InsightsOverview,
   InsightsBestEfforts,
-};
-
-export type TodayDashboard = {
-  date: string;
-  items: PlanOccurrenceRecord[];
-  week: {
-    start: string;
-    end: string;
-    days: Array<{ date: string; items: PlanOccurrenceRecord[] }>;
-    running: {
-      distanceMeters: number;
-      completedSessions: number;
-      plannedSessions: number;
-    };
-    gym: { completedSessions: number; plannedSessions: number };
-    nutrition: { targetDays: number; achievedDays: number };
-  };
+  TodayDashboard,
 };
 
 export type ListRunsOptions = {
