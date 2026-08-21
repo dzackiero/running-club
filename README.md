@@ -136,6 +136,12 @@ The web app’s **Connect** page (`/connect`) shows the same URL and steps.
 | `get_weekly_progress` | Progress toward current weekly goal |
 | `set_weekly_goal` | Set or replace weekly goal |
 | `get_summary` | Aggregated stats for a date range |
+| `create_meal_draft` | Save a photo-informed meal estimate for review; it does not count yet. |
+| `get_meal_draft` | Retrieve a pending meal estimate. |
+| `confirm_meal_draft` | Confirm or correct a meal estimate so it counts toward nutrition totals. |
+| `discard_meal_draft` | Reject a pending meal estimate. |
+
+For food photos, include the food and an approximate portion: `Photo of chicken rice; rice about 200 g, chicken about 120 g; create a draft, show me the estimate, and wait for confirmation.` The client may estimate macros, but CUP stores them only as a draft until you confirm or correct it.
 
 ## Scripts
 

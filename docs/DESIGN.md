@@ -4,6 +4,8 @@
 **Product:** Personal training companion (REST + ChatGPT MCP companion)
 **UI role:** Today-first dashboard for personal plans, activity, and progress — not a marketing site
 
+Nutrition is MCP-first: photo plus food and portion context creates a reviewable estimate. Only a confirmed draft contributes to the daily and weekly dashboard.
+
 ## Intent
 
 Morning training energy: bright, honest, outdoor. Data is readable; big numbers feel athletic without dark-mode gym chrome. Brand stays quiet; weekly mileage and pace do the talking.

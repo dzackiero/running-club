@@ -91,7 +91,16 @@ describe("todayDashboardSchema", () => {
         ],
         running: { distanceMeters: 0, completedSessions: 0, plannedSessions: 0 },
         gym: { completedSessions: 0, plannedSessions: 1 },
-        nutrition: { targetDays: 0, achievedDays: 0 },
+        nutrition: {
+          targetDays: 0,
+          achievedDays: 0,
+          today: {
+            calories: 0,
+            proteinGrams: 0,
+            targetCalories: null,
+            targetProteinGrams: null,
+          },
+        },
       },
     };
 
