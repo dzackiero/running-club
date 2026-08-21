@@ -14,7 +14,8 @@ import { RunStreamsChart } from "@/components/RunStreamsChart";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ActivityIcon, activityLabel } from "@/lib/activity";
+import { ActivityIcon } from "@/lib/activity";
+import { activityLabel } from "@/lib/activity-data";
 import { deleteRun, getRun, type RunRecord } from "@/lib/api";
 import {
   formatDateParts,

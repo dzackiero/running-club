@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ACTIVITY_LABELS } from "@/lib/activity";
+import { ACTIVITY_LABELS } from "@/lib/activity-data";
 import { updateRun } from "@/lib/api";
 
 type EditRunDialogProps = {

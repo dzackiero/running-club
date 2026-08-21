@@ -4,7 +4,8 @@ import { Link } from "react-router-dom";
 import type { GymWorkoutRecord, MealRecord, RunRecord } from "@running-club/shared";
 import { AppLoading } from "@/components/AppLoading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ActivityIcon, activityLabel } from "@/lib/activity";
+import { ActivityIcon } from "@/lib/activity";
+import { activityLabel } from "@/lib/activity-data";
 import { formatDate, formatDuration, formatKm } from "@/lib/format";
 import { listGymWorkouts, listRecentConfirmedMeals, listRuns } from "@/lib/api";
 
