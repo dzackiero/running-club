@@ -157,6 +157,7 @@ export const todayDashboardSchema = z.object({
     nutrition: z.object({
       targetDays: z.number().int().nonnegative(),
       achievedDays: z.number().int().nonnegative(),
+      today: z.object({ calories: z.number().nonnegative(), proteinGrams: z.number().nonnegative(), targetCalories: z.number().nullable(), targetProteinGrams: z.number().nullable() }),
     }),
   }),
 });

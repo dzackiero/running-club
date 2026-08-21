@@ -1,4 +1,4 @@
-import type { PlanOccurrenceRecord } from "@running-club/shared";
+import type { PlanOccurrenceRecord, TodayDashboard } from "@running-club/shared";
 import { Check, Circle, Dumbbell, Leaf, RotateCcw, SkipForward } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 type TodayAgendaProps = {
   items: PlanOccurrenceRecord[];
+  nutrition: TodayDashboard["week"]["nutrition"];
   onChanged: () => void;
   onLogGym: (item: PlanOccurrenceRecord) => void;
 };
@@ -40,7 +41,7 @@ function detailsLabel(item: PlanOccurrenceRecord) {
   ].filter(Boolean).join(" · ");
 }
 
-export function TodayAgenda({ items, onChanged, onLogGym }: TodayAgendaProps) {
+export function TodayAgenda({ items, nutrition, onChanged, onLogGym }: TodayAgendaProps) {
   const changeStatus = async (id: string, status: "planned" | "done" | "skipped") => {
     try {
       await patchPlanOccurrence(id, { status });
@@ -113,6 +114,7 @@ export function TodayAgenda({ items, onChanged, onLogGym }: TodayAgendaProps) {
           })}
         </ul>
       )}
+      {nutrition.today.targetProteinGrams != null ? <p className="text-sm text-muted-foreground">Protein today: {Math.round(nutrition.today.proteinGrams)} / {Math.round(nutrition.today.targetProteinGrams)} g. Log meals through MCP, then confirm the draft before it counts.</p> : null}
     </section>
   );
 }

@@ -17,7 +17,7 @@ export function WeeklyOverview({ week, today }: Pick<TodayDashboard, "week"> & {
   const metrics = [
     { label: "Running", value: `${(week.running.distanceMeters / 1000).toFixed(week.running.distanceMeters % 1000 === 0 ? 0 : 1)} km`, detail: `${week.running.completedSessions}/${week.running.plannedSessions} sessions` },
     { label: "Gym", value: `${week.gym.completedSessions}/${week.gym.plannedSessions}`, detail: "sessions" },
-    { label: "Nutrition", value: `${week.nutrition.achievedDays}/${week.nutrition.targetDays}`, detail: "target days" },
+    { label: "Nutrition", value: `${week.nutrition.achievedDays}/${week.nutrition.targetDays}`, detail: week.nutrition.today.targetProteinGrams != null ? `${Math.round(week.nutrition.today.proteinGrams)}/${Math.round(week.nutrition.today.targetProteinGrams)} g protein today` : "target days" },
   ];
 
   return (

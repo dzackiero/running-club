@@ -6,9 +6,9 @@ import type {
   TodayDashboard,
   UpdatePlanOccurrenceInput,
 } from "@running-club/shared";
-import { and, asc, eq, gte, lte } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lte } from "drizzle-orm";
 import { db } from "../db/client";
-import { planOccurrence, planTemplate } from "../db/schema";
+import { meal, nutritionDay, planOccurrence, planTemplate } from "../db/schema";
 import { getWeekBounds } from "../lib/period";
 
 type PlanTemplateRow = typeof planTemplate.$inferSelect;
@@ -248,6 +248,28 @@ export async function getTodayDashboard(
   const nutrition = occurrences.filter(
     (occurrence) => occurrence.category === "nutrition",
   );
+  const weekDates = days.map((day) => day.date);
+  const nutritionDays = await db.select().from(nutritionDay).where(and(eq(nutritionDay.userId, userId), inArray(nutritionDay.date, weekDates)));
+  const confirmedMeals = await db.select().from(meal).where(and(eq(meal.userId, userId), eq(meal.status, "confirmed")));
+  const totalsByDate = new Map<string, { calories: number; proteinGrams: number }>();
+  for (const row of confirmedMeals) {
+    const key = dateKey(row.occurredAt);
+    if (!weekDates.includes(key)) continue;
+    const total = totalsByDate.get(key) ?? { calories: 0, proteinGrams: 0 };
+    total.calories += row.totalCalories;
+    total.proteinGrams += row.totalProteinGrams;
+    totalsByDate.set(key, total);
+  }
+  const targetsByDate = new Map(nutritionDays.map((row) => [row.date, row]));
+  const achievedDays = nutritionDays.filter((row) => {
+    const totals = totalsByDate.get(row.date) ?? { calories: 0, proteinGrams: 0 };
+    return (row.targetCalories != null || row.targetProteinGrams != null) &&
+      (row.targetCalories == null || totals.calories >= row.targetCalories) &&
+      (row.targetProteinGrams == null || totals.proteinGrams >= row.targetProteinGrams);
+  }).length;
+  const todayKey = dateKey(date);
+  const todayTotals = totalsByDate.get(todayKey) ?? { calories: 0, proteinGrams: 0 };
+  const todayTarget = targetsByDate.get(todayKey);
 
   return {
     date: dateKey(date),
@@ -275,8 +297,9 @@ export async function getTodayDashboard(
         plannedSessions: gym.length,
       },
       nutrition: {
-        targetDays: nutrition.length,
-        achievedDays: 0,
+        targetDays: nutritionDays.filter((row) => row.targetCalories != null || row.targetProteinGrams != null).length || nutrition.length,
+        achievedDays,
+        today: { calories: todayTotals.calories, proteinGrams: todayTotals.proteinGrams, targetCalories: todayTarget?.targetCalories ?? null, targetProteinGrams: todayTarget?.targetProteinGrams ?? null },
       },
     },
   };

@@ -52,7 +52,7 @@ export function Home() {
   if (loading && !dashboard) return <AppLoading />;
   return <section className="space-y-8">
     {error && !dashboard ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
-    {dashboard ? <><TodayAgenda items={dashboard.items} onChanged={() => void refresh()} onLogGym={setGymOccurrence} /><WeeklyOverview week={dashboard.week} today={dashboard.date} /></> : null}
+    {dashboard ? <><TodayAgenda items={dashboard.items} nutrition={dashboard.week.nutrition} onChanged={() => void refresh()} onLogGym={setGymOccurrence} /><WeeklyOverview week={dashboard.week} today={dashboard.date} /></> : null}
     <section aria-labelledby="recent-runs"><div className="mb-2 flex items-center justify-between gap-2"><div><p className="text-xs font-semibold tracking-wide text-primary uppercase">Recent activity</p><h2 id="recent-runs" className="text-xl font-semibold tracking-tight">Recent runs</h2></div><Link to="/connect" className="text-sm text-primary underline-offset-4 hover:underline">Sync</Link></div><Separator className="mb-1" />{runs.length === 0 ? <p className="pt-4 text-sm text-muted-foreground">No runs logged yet. Connect Intervals or log one from chat.</p> : <ul className="overflow-hidden rounded-lg border border-border">{runs.map((run) => <RunRow key={run.id} run={run} onEdit={setEditingRun} onDeleted={() => void refresh()} />)}</ul>}</section>
     {editingRun ? <EditRunDialog open onOpenChange={(open) => { if (!open) setEditingRun(null); }} run={editingRun} onSaved={() => void refresh()} /> : null}
     <GymWorkoutDialog occurrence={gymOccurrence} open={gymOccurrence !== null} onOpenChange={(open) => { if (!open) setGymOccurrence(null); }} onSaved={() => void refresh()} />

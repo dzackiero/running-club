@@ -158,6 +158,12 @@ describe("plans service", () => {
     expect(dashboard.week.nutrition).toEqual({
       targetDays: 1,
       achievedDays: 0,
+      today: {
+        calories: 0,
+        proteinGrams: 0,
+        targetCalories: null,
+        targetProteinGrams: null,
+      },
     });
   });
 });
