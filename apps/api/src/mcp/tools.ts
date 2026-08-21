@@ -2,6 +2,7 @@ import {
   confirmMealDraftSchema,
   createMealDraftSchema,
   createRunSchema,
+  createPlanTemplateSchema,
   listRunsQuerySchema,
   summaryQuerySchema,
   updateRunSchema,
@@ -25,6 +26,7 @@ import {
   listRuns,
   updateRun,
 } from "../services/runs";
+import { createPlanTemplate, deletePlanTemplate, listPlanTemplates, updatePlanTemplate } from "../services/plans";
 
 export const listRunsToolSchema = listRunsQuerySchema;
 
@@ -39,6 +41,9 @@ export const updateRunToolSchema = updateRunSchema.extend({
 export const mealDraftIdToolSchema = z.object({
   id: z.string().uuid(),
 });
+export const planTemplateIdToolSchema = z.object({ id: z.string().uuid() });
+export const updatePlanTemplateToolSchema = z.object({ id: z.string().uuid() }).and(createPlanTemplateSchema);
+export const createPlanTemplatesToolSchema = z.object({ templates: z.array(createPlanTemplateSchema).min(1).max(50) });
 
 export const confirmMealDraftToolSchema = confirmMealDraftSchema.extend({
   id: z.string().uuid(),
@@ -228,4 +233,24 @@ export async function handleDiscardMealDraft(
     if (err instanceof NutritionError) return notFoundResult("Meal draft not found");
     throw err;
   }
+}
+
+export async function handleListPlanTemplates(userId: string): Promise<CallToolResult> {
+  return { content: [{ type: "text", text: jsonText(await listPlanTemplates(userId)) }] };
+}
+export async function handleCreatePlanTemplate(userId: string, input: unknown): Promise<CallToolResult> {
+  try { return { content: [{ type: "text", text: jsonText(await createPlanTemplate(userId, createPlanTemplateSchema.parse(input))) }] }; }
+  catch (err) { if (err instanceof ZodError) return validationErrorResult(err); throw err; }
+}
+export async function handleCreatePlanTemplates(userId: string, input: unknown): Promise<CallToolResult> {
+  try { const { templates } = createPlanTemplatesToolSchema.parse(input); return { content: [{ type: "text", text: jsonText(await Promise.all(templates.map((template) => createPlanTemplate(userId, template)))) }] }; }
+  catch (err) { if (err instanceof ZodError) return validationErrorResult(err); throw err; }
+}
+export async function handleUpdatePlanTemplate(userId: string, input: unknown): Promise<CallToolResult> {
+  try { const { id, ...template } = updatePlanTemplateToolSchema.parse(input); const updated = await updatePlanTemplate(userId, id, template); return updated ? { content: [{ type: "text", text: jsonText(updated) }] } : notFoundResult("Plan template not found"); }
+  catch (err) { if (err instanceof ZodError) return validationErrorResult(err); throw err; }
+}
+export async function handleDeletePlanTemplate(userId: string, input: unknown): Promise<CallToolResult> {
+  try { const { id } = planTemplateIdToolSchema.parse(input); return await deletePlanTemplate(userId, id) ? { content: [{ type: "text", text: `Deleted plan template ${id}` }] } : notFoundResult("Plan template not found"); }
+  catch (err) { if (err instanceof ZodError) return validationErrorResult(err); throw err; }
 }

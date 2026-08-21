@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import {
@@ -27,6 +28,13 @@ import {
   mealDraftIdToolSchema,
   runIdToolSchema,
   updateRunToolSchema,
+  createPlanTemplatesToolSchema,
+  planTemplateIdToolSchema,
+  handleListPlanTemplates,
+  handleCreatePlanTemplate,
+  handleCreatePlanTemplates,
+  handleUpdatePlanTemplate,
+  handleDeletePlanTemplate,
 } from "./tools";
 
 export const MCP_PROTECTED_RESOURCE_METADATA_URL = `${env.API_PUBLIC_URL}/.well-known/oauth-protected-resource/mcp`;
@@ -60,6 +68,22 @@ function createRunningClubMcpServer(userId: string): McpServer {
     name: "cup-run",
     version: "1.0.0",
   });
+
+  server.registerTool(
+    "list_plan_templates", { description: "List recurring personal plan templates", inputSchema: {} }, () => handleListPlanTemplates(userId),
+  );
+  server.registerTool(
+    "create_plan_template", { description: "Create one recurring run, gym, or nutrition plan template", inputSchema: { weekday: z.number().int().min(0).max(6), category: z.enum(["run", "gym", "nutrition"]), title: z.string(), details: z.record(z.unknown()) } }, (args) => handleCreatePlanTemplate(userId, args),
+  );
+  server.registerTool(
+    "create_plan_templates", { description: "Add multiple recurring templates for a weekly plan. This is additive and does not delete existing templates.", inputSchema: createPlanTemplatesToolSchema.shape }, (args) => handleCreatePlanTemplates(userId, args),
+  );
+  server.registerTool(
+    "update_plan_template", { description: "Replace one recurring plan template", inputSchema: { id: z.string().uuid(), weekday: z.number().int().min(0).max(6), category: z.enum(["run", "gym", "nutrition"]), title: z.string(), details: z.record(z.unknown()) } }, (args) => handleUpdatePlanTemplate(userId, args),
+  );
+  server.registerTool(
+    "delete_plan_template", { description: "Delete one recurring plan template while retaining materialized history", inputSchema: planTemplateIdToolSchema.shape }, (args) => handleDeletePlanTemplate(userId, args),
+  );
 
   server.registerTool(
     "log_run",
