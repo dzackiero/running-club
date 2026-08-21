@@ -65,7 +65,7 @@ export function History() {
     <section className="mx-auto w-full max-w-2xl space-y-6">
       <div className="space-y-1">
         <p className="text-xs font-semibold tracking-wide text-primary uppercase">Personal log</p>
-        <h1 className="text-2xl font-semibold tracking-tight">History</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Activity</h1>
         <p className="text-sm text-muted-foreground">Your runs, gym workouts, and confirmed meals in one timeline.</p>
       </div>
       {items.length === 0 ? (

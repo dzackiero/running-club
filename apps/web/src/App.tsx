@@ -27,7 +27,8 @@ export default function App() {
             <Route index element={<Home />} />
             <Route path="/runs/:id" element={<RunDetail />} />
             <Route path="/plan" element={<Plan />} />
-            <Route path="/history" element={<History />} />
+            <Route path="/activity" element={<History />} />
+            <Route path="/history" element={<Navigate to="/activity" replace />} />
             <Route path="/goal" element={<Navigate to="/plan" replace />} />
             <Route path="/insights" element={<Insights />} />
             <Route path="/settings" element={<Settings />} />

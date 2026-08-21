@@ -53,8 +53,8 @@ export function Layout() {
       <NavLink to="/plan" className={navLinkClass} onClick={() => setMenuOpen(false)}>
         Plan
       </NavLink>
-      <NavLink to="/history" className={navLinkClass} onClick={() => setMenuOpen(false)}>
-        History
+      <NavLink to="/activity" className={navLinkClass} onClick={() => setMenuOpen(false)}>
+        Activity
       </NavLink>
       <NavLink
         to="/insights"
