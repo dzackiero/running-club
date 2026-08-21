@@ -7,7 +7,7 @@ import type {
   NutritionDayRecord,
   UpdateNutritionDayInput,
 } from "@running-club/shared";
-import { and, eq, gte, lt } from "drizzle-orm";
+import { and, desc, eq, gte, lt } from "drizzle-orm";
 import { db } from "../db/client";
 import { meal, nutritionDay } from "../db/schema";
 
@@ -196,6 +196,21 @@ export async function listMeals(userId: string, date: string): Promise<MealRecor
         lt(meal.occurredAt, endsAt),
       ),
     );
+
+  return rows.map(toMealRecord);
+}
+
+/** Confirmed entries only: drafts remain private review items, never history. */
+export async function listRecentConfirmedMeals(
+  userId: string,
+  limit: number,
+): Promise<MealRecord[]> {
+  const rows = await db
+    .select()
+    .from(meal)
+    .where(and(eq(meal.userId, userId), eq(meal.status, "confirmed")))
+    .orderBy(desc(meal.occurredAt))
+    .limit(limit);
 
   return rows.map(toMealRecord);
 }

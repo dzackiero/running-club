@@ -5,6 +5,7 @@ import { RequireAuth } from "./components/RequireAuth";
 import { Connect } from "./pages/Connect";
 import { Consent } from "./pages/Consent";
 import { Home } from "./pages/Home";
+import { History } from "./pages/History";
 import { Insights } from "./pages/Insights";
 import { Plan } from "./pages/Plan";
 import { RunDetail } from "./pages/RunDetail";
@@ -26,6 +27,7 @@ export default function App() {
             <Route index element={<Home />} />
             <Route path="/runs/:id" element={<RunDetail />} />
             <Route path="/plan" element={<Plan />} />
+            <Route path="/history" element={<History />} />
             <Route path="/goal" element={<Navigate to="/plan" replace />} />
             <Route path="/insights" element={<Insights />} />
             <Route path="/settings" element={<Settings />} />

@@ -8,6 +8,7 @@ import type {
   PlanTemplateRecord,
   PreferencesRecord,
   RunRecord,
+  MealRecord,
   TodayDashboard,
   UpdatePlanOccurrenceInput,
   UpdatePreferencesInput,
@@ -55,6 +56,7 @@ export type {
   PlanTemplateRecord,
   PreferencesRecord,
   RunRecord,
+  MealRecord,
   WeeklyGoalRecord,
   WeekProgress,
   InsightsOverview,
@@ -206,4 +208,12 @@ export function createGymWorkout(body: CreateGymWorkoutInput) {
     method: "POST",
     body: JSON.stringify(body),
   });
+}
+
+export function listGymWorkouts() {
+  return apiFetch<GymWorkoutRecord[]>("/gym/workouts");
+}
+
+export function listRecentConfirmedMeals(limit = 30) {
+  return apiFetch<MealRecord[]>(`/nutrition/meals/recent?limit=${limit}`);
 }

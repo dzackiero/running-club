@@ -14,6 +14,7 @@ import {
   createMealDraft,
   discardMealDraft,
   getNutritionProgress,
+  listRecentConfirmedMeals,
   listMeals,
   updateNutritionDay,
 } from "../services/nutrition";
@@ -67,6 +68,18 @@ nutritionRoutes.get("/meals", async (c) => {
   try {
     const date = dateSchema.parse(c.req.query("date"));
     return c.json(await listMeals(c.get("user")!.id, date));
+  } catch (err) {
+    if (err instanceof ZodError) return validationError(c, err);
+    throw err;
+  }
+});
+
+nutritionRoutes.get("/meals/recent", async (c) => {
+  try {
+    const limit = z.coerce.number().int().positive().max(100).catch(30).parse(
+      c.req.query("limit"),
+    );
+    return c.json(await listRecentConfirmedMeals(c.get("user")!.id, limit));
   } catch (err) {
     if (err instanceof ZodError) return validationError(c, err);
     throw err;

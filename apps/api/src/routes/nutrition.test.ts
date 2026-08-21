@@ -178,4 +178,19 @@ describe("nutrition routes", () => {
       targets: { calories: 2000, proteinGrams: 120 },
     });
   });
+
+  it("lists only confirmed meals in reverse chronological order for history", async () => {
+    const response = await app.request("/nutrition/meals/recent?limit=10", {
+      headers: { cookie: owner.cookie },
+    });
+
+    expect(response.status).toBe(200);
+    const meals = await response.json();
+    expect(meals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "confirmed", occurredAt: "2026-08-19T12:30:00.000Z" }),
+      ]),
+    );
+    expect(meals.every((meal: { status: string }) => meal.status === "confirmed")).toBe(true);
+  });
 });
