@@ -6,6 +6,7 @@ import { patchPlanOccurrence } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type TodayAgendaProps = {
+  date: string;
   items: PlanOccurrenceRecord[];
   nutrition: TodayDashboard["week"]["nutrition"];
   onChanged: () => void;
@@ -41,7 +42,7 @@ function detailsLabel(item: PlanOccurrenceRecord) {
   ].filter(Boolean).join(" · ");
 }
 
-export function TodayAgenda({ items, nutrition, onChanged, onLogGym }: TodayAgendaProps) {
+export function TodayAgenda({ date, items, nutrition, onChanged, onLogGym }: TodayAgendaProps) {
   const changeStatus = async (id: string, status: "planned" | "done" | "skipped") => {
     try {
       await patchPlanOccurrence(id, { status });
@@ -56,7 +57,7 @@ export function TodayAgenda({ items, nutrition, onChanged, onLogGym }: TodayAgen
     <section aria-labelledby="today-agenda" className="space-y-3">
       <div className="flex items-baseline justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold tracking-wide text-primary uppercase">Today</p>
+          <p className="text-xs font-semibold tracking-wide text-primary uppercase">{new Intl.DateTimeFormat(undefined, { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${date}T12:00:00.000Z`))}</p>
           <h1 id="today-agenda" className="text-2xl font-semibold tracking-tight">Your agenda</h1>
         </div>
         {items.length > 0 ? (

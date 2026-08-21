@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { MoreVertical } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { AppLoading } from "@/components/AppLoading";
 import { EditRunDialog } from "@/components/EditRunDialog";
@@ -16,6 +16,7 @@ import { activityLabel } from "@/lib/activity-data";
 import { deleteRun, getTodayDashboard, listRuns, type PlanOccurrenceRecord, type RunRecord, type TodayDashboard } from "@/lib/api";
 import { formatDateParts, formatDurationClock, formatKm, formatPace } from "@/lib/format";
 import { createLatestRequestGuard } from "@/lib/latest-request";
+import { addDays, dateAtNoon, todayDateKey } from "@/lib/dashboard-date";
 
 function RunRow({ run, onEdit, onDeleted }: { run: RunRecord; onEdit: (run: RunRecord) => void; onDeleted: () => void }) {
   const { date, weekday } = formatDateParts(run.startedAt);
@@ -37,23 +38,24 @@ export function Home() {
   const [error, setError] = useState<string | null>(null);
   const [editingRun, setEditingRun] = useState<RunRecord | null>(null);
   const [gymOccurrence, setGymOccurrence] = useState<PlanOccurrenceRecord | null>(null);
+  const [selectedDate, setSelectedDate] = useState(todayDateKey);
   const refreshGuard = useRef(createLatestRequestGuard());
   const refresh = useCallback(async () => {
     const requestId = refreshGuard.current.begin();
     if (refreshGuard.current.isLatest(requestId)) setLoading(true);
-    const [todayResult, runsResult] = await Promise.allSettled([getTodayDashboard(), listRuns({ limit: 10 })]);
+    const [todayResult, runsResult] = await Promise.allSettled([getTodayDashboard(dateAtNoon(selectedDate)), listRuns({ limit: 10 })]);
     if (!refreshGuard.current.isLatest(requestId)) return;
     if (todayResult.status === "fulfilled") { setDashboard(todayResult.value); setError(null); }
     else setError(todayResult.reason instanceof Error ? todayResult.reason.message : "Failed to load today");
     if (runsResult.status === "fulfilled") setRuns(runsResult.value);
     else toast.error(runsResult.reason instanceof Error ? runsResult.reason.message : "Failed to load recent runs");
     setLoading(false);
-  }, []);
+  }, [selectedDate]);
   useEffect(() => { void refresh(); }, [refresh]);
   if (loading && !dashboard) return <AppLoading />;
   return <section className="space-y-8">
     {error && !dashboard ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
-    {dashboard ? <><TodayAgenda items={dashboard.items} nutrition={dashboard.week.nutrition} onChanged={() => void refresh()} onLogGym={setGymOccurrence} /><WeeklyOverview week={dashboard.week} today={dashboard.date} /></> : null}
+    {dashboard ? <><section className="flex flex-wrap items-center justify-between gap-3" aria-label="Dashboard date controls"><div className="flex items-center gap-1"><Button type="button" variant="outline" size="icon" onClick={() => setSelectedDate((date) => addDays(date, -1))} aria-label="Previous day"><ChevronLeft /></Button><Button type="button" variant="outline" size="icon" onClick={() => setSelectedDate((date) => addDays(date, 1))} aria-label="Next day"><ChevronRight /></Button><div className="relative"><CalendarDays className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden /><input type="date" value={selectedDate} onChange={(event) => event.target.value && setSelectedDate(event.target.value)} className="h-8 rounded-lg border border-input bg-background pr-2 pl-8 text-sm" aria-label="Choose dashboard date" /></div></div><Button type="button" variant="ghost" size="sm" onClick={() => setSelectedDate(todayDateKey())}>Today</Button></section><TodayAgenda date={dashboard.date} items={dashboard.items} nutrition={dashboard.week.nutrition} onChanged={() => void refresh()} onLogGym={setGymOccurrence} /><WeeklyOverview week={dashboard.week} today={dashboard.date} onSelectDay={setSelectedDate} /></> : null}
     <section aria-labelledby="recent-runs"><div className="mb-2 flex items-center justify-between gap-2"><div><p className="text-xs font-semibold tracking-wide text-primary uppercase">Recent activity</p><h2 id="recent-runs" className="text-xl font-semibold tracking-tight">Recent runs</h2></div><Link to="/connect" className="text-sm text-primary underline-offset-4 hover:underline">Sync</Link></div><Separator className="mb-1" />{runs.length === 0 ? <p className="pt-4 text-sm text-muted-foreground">No runs logged yet. Connect Intervals or log one from chat.</p> : <ul className="overflow-hidden rounded-lg border border-border">{runs.map((run) => <RunRow key={run.id} run={run} onEdit={setEditingRun} onDeleted={() => void refresh()} />)}</ul>}</section>
     {editingRun ? <EditRunDialog open onOpenChange={(open) => { if (!open) setEditingRun(null); }} run={editingRun} onSaved={() => void refresh()} /> : null}
     <GymWorkoutDialog occurrence={gymOccurrence} open={gymOccurrence !== null} onOpenChange={(open) => { if (!open) setGymOccurrence(null); }} onSaved={() => void refresh()} />
