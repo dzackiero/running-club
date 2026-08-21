@@ -11,6 +11,7 @@ import type {
   MealRecord,
   TodayDashboard,
   UpdatePlanOccurrenceInput,
+  UpdatePlanTemplateInput,
   UpdatePreferencesInput,
   UpdateRunInput,
   UpsertWeeklyGoalInput,
@@ -191,6 +192,14 @@ export function createPlanTemplate(body: CreatePlanTemplateInput) {
     method: "POST",
     body: JSON.stringify(body),
   });
+}
+
+export function updatePlanTemplate(id: string, body: UpdatePlanTemplateInput) {
+  return apiFetch<PlanTemplateRecord>(`/plan/templates/${id}`, { method: "PUT", body: JSON.stringify(body) });
+}
+
+export function deletePlanTemplate(id: string) {
+  return apiFetch<void>(`/plan/templates/${id}`, { method: "DELETE" });
 }
 
 export function patchPlanOccurrence(

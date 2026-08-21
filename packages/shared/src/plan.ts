@@ -54,6 +54,8 @@ export const createPlanTemplateSchema = z
   })
   .and(planDetailsSchema);
 export type CreatePlanTemplateInput = z.infer<typeof createPlanTemplateSchema>;
+export const updatePlanTemplateSchema = createPlanTemplateSchema;
+export type UpdatePlanTemplateInput = z.infer<typeof updatePlanTemplateSchema>;
 
 const occurrenceUpdateDetailsSchema = z.union([
   runPlanDetailsSchema,

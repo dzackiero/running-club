@@ -5,7 +5,10 @@ import { planOccurrence, planTemplate, run } from "../db/schema";
 import { deleteTestUsers, ensureTestUsers } from "../test/users";
 import {
   ensurePlanOccurrences,
+  createPlanTemplate,
+  deletePlanTemplate,
   getTodayDashboard,
+  updatePlanTemplate,
   updatePlanOccurrence,
 } from "./plans";
 
@@ -96,6 +99,25 @@ describe("plans service", () => {
       .from(planOccurrence)
       .where(eq(planOccurrence.id, occurrenceId));
     expect(stored?.status).toBe("planned");
+  });
+
+  it("updates and deletes only the owner's recurring template", async () => {
+    const template = await createPlanTemplate(recurrenceUserId, {
+      weekday: 1,
+      category: "run",
+      title: "Easy run",
+      details: { targetDistanceMeters: 5000 },
+    });
+    await expect(
+      updatePlanTemplate(recurrenceUserId, template.id, {
+        weekday: 3,
+        category: "gym",
+        title: "Strength",
+        details: { focus: "Upper body" },
+      }),
+    ).resolves.toMatchObject({ weekday: 3, category: "gym", title: "Strength" });
+    await expect(deletePlanTemplate(otherUserId, template.id)).resolves.toBe(false);
+    await expect(deletePlanTemplate(recurrenceUserId, template.id)).resolves.toBe(true);
   });
 
   it("attaches a same-day run and completes the planned run occurrence", async () => {

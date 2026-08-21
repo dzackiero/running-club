@@ -5,6 +5,7 @@ import type {
   PlanTemplateRecord,
   TodayDashboard,
   UpdatePlanOccurrenceInput,
+  UpdatePlanTemplateInput,
 } from "@running-club/shared";
 import { and, asc, eq, gte, inArray, lte } from "drizzle-orm";
 import { db } from "../db/client";
@@ -78,6 +79,35 @@ export async function createPlanTemplate(
     })
     .returning();
   return toPlanTemplateRecord(row!);
+}
+
+/** Changes apply to future materializations; existing occurrence snapshots stay intact. */
+export async function updatePlanTemplate(
+  userId: string,
+  id: string,
+  input: UpdatePlanTemplateInput,
+): Promise<PlanTemplateRecord | null> {
+  const [row] = await db
+    .update(planTemplate)
+    .set({
+      weekday: input.weekday,
+      category: input.category,
+      title: input.title,
+      details: input.details,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(planTemplate.id, id), eq(planTemplate.userId, userId)))
+    .returning();
+  return row ? toPlanTemplateRecord(row) : null;
+}
+
+/** Deleting a template leaves past occurrence snapshots as personal history. */
+export async function deletePlanTemplate(userId: string, id: string): Promise<boolean> {
+  const deleted = await db
+    .delete(planTemplate)
+    .where(and(eq(planTemplate.id, id), eq(planTemplate.userId, userId)))
+    .returning({ id: planTemplate.id });
+  return deleted.length === 1;
 }
 
 /** Lazily creates immutable occurrence snapshots for active templates in range. */
