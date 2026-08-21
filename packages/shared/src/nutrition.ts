@@ -2,11 +2,11 @@ import { z } from "zod";
 
 export const mealItemSchema = z.object({
   name: z.string().min(1).max(200),
-  grams: z.number().nonnegative(),
-  calories: z.number().nonnegative(),
-  proteinGrams: z.number().nonnegative(),
-  carbsGrams: z.number().nonnegative(),
-  fatGrams: z.number().nonnegative(),
+  grams: z.number().finite().nonnegative(),
+  calories: z.number().finite().nonnegative(),
+  proteinGrams: z.number().finite().nonnegative(),
+  carbsGrams: z.number().finite().nonnegative(),
+  fatGrams: z.number().finite().nonnegative(),
 });
 export type MealItem = z.infer<typeof mealItemSchema>;
 
@@ -26,10 +26,10 @@ export const confirmMealDraftSchema = z.object({
 export type ConfirmMealDraftInput = z.infer<typeof confirmMealDraftSchema>;
 
 export const updateNutritionDaySchema = z.object({
-  targetCalories: z.number().nonnegative().optional(),
-  targetProteinGrams: z.number().nonnegative().optional(),
-  targetCarbsGrams: z.number().nonnegative().optional(),
-  targetFatGrams: z.number().nonnegative().optional(),
+  targetCalories: z.number().finite().nonnegative().optional(),
+  targetProteinGrams: z.number().finite().nonnegative().optional(),
+  targetCarbsGrams: z.number().finite().nonnegative().optional(),
+  targetFatGrams: z.number().finite().nonnegative().optional(),
 });
 export type UpdateNutritionDayInput = z.infer<typeof updateNutritionDaySchema>;
 

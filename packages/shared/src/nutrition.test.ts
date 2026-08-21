@@ -38,6 +38,23 @@ describe("createMealDraftSchema", () => {
       }),
     ).toThrow();
   });
+
+  it("rejects infinite item quantities and macros", () => {
+    for (const field of [
+      "grams",
+      "calories",
+      "proteinGrams",
+      "carbsGrams",
+      "fatGrams",
+    ] as const) {
+      expect(() =>
+        createMealDraftSchema.parse({
+          ...chickenRice,
+          items: [{ ...chickenRice.items[0], [field]: Infinity }],
+        }),
+      ).toThrow();
+    }
+  });
 });
 
 describe("meal confirmation and nutrition-day inputs", () => {
@@ -54,5 +71,16 @@ describe("meal confirmation and nutrition-day inputs", () => {
         targetProteinGrams: 150,
       }),
     ).toEqual({ targetCalories: 2200, targetProteinGrams: 150 });
+  });
+
+  it("rejects infinite nutrition targets", () => {
+    for (const field of [
+      "targetCalories",
+      "targetProteinGrams",
+      "targetCarbsGrams",
+      "targetFatGrams",
+    ] as const) {
+      expect(() => updateNutritionDaySchema.parse({ [field]: Infinity })).toThrow();
+    }
   });
 });
