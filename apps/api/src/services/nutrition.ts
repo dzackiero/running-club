@@ -4,6 +4,8 @@ import type {
   MealItem,
   MealRecord,
   NutritionProgress,
+  NutritionDayRecord,
+  UpdateNutritionDayInput,
 } from "@running-club/shared";
 import { and, eq, gte, lt } from "drizzle-orm";
 import { db } from "../db/client";
@@ -12,6 +14,7 @@ import { meal, nutritionDay } from "../db/schema";
 export class NutritionError extends Error {}
 
 type MealRow = typeof meal.$inferSelect;
+type NutritionDayRow = typeof nutritionDay.$inferSelect;
 
 function totalsFromItems(items: MealItem[]) {
   return items.reduce(
@@ -39,6 +42,20 @@ function toMealRecord(row: MealRow): MealRecord {
     imageReference: row.imageReference,
     source: row.source as MealRecord["source"],
     notes: row.notes,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+function toNutritionDayRecord(row: NutritionDayRow): NutritionDayRecord {
+  return {
+    id: row.id,
+    userId: row.userId,
+    date: row.date,
+    targetCalories: row.targetCalories,
+    targetProteinGrams: row.targetProteinGrams,
+    targetCarbsGrams: row.targetCarbsGrams,
+    targetFatGrams: row.targetFatGrams,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -165,6 +182,39 @@ export async function discardMealDraft(
     .returning();
   if (!discarded) throw new NutritionError("Meal draft was not found");
   return toMealRecord(discarded);
+}
+
+export async function listMeals(userId: string, date: string): Promise<MealRecord[]> {
+  const { startsAt, endsAt } = dayBounds(date);
+  const rows = await db
+    .select()
+    .from(meal)
+    .where(
+      and(
+        eq(meal.userId, userId),
+        gte(meal.occurredAt, startsAt),
+        lt(meal.occurredAt, endsAt),
+      ),
+    );
+
+  return rows.map(toMealRecord);
+}
+
+export async function updateNutritionDay(
+  userId: string,
+  date: string,
+  input: UpdateNutritionDayInput,
+): Promise<NutritionDayRecord> {
+  const [row] = await db
+    .insert(nutritionDay)
+    .values({ id: crypto.randomUUID(), userId, date, ...input })
+    .onConflictDoUpdate({
+      target: [nutritionDay.userId, nutritionDay.date],
+      set: { ...input, updatedAt: new Date() },
+    })
+    .returning();
+
+  return toNutritionDayRecord(row!);
 }
 
 export async function getNutritionProgress(

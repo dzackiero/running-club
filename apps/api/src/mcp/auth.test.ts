@@ -75,7 +75,7 @@ describe("verifyMcpAccessToken issuer/audience", () => {
   const kid = "task7-test-key";
   let privateKey: CryptoKey;
   let publicJwk: JWK;
-  let handlerSpy: ReturnType<typeof vi.spyOn>;
+  let handlerSpy: { mockRestore(): void };
 
   beforeAll(async () => {
     const pair = await generateKeyPair("RS256");

@@ -1,5 +1,8 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { exportJWK, generateKeyPair, type JWK, SignJWT } from "jose";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { app } from "../app";
+import { auth } from "../auth";
+import { AUTH_ISSUER } from "../mcp/auth";
 import { deleteTestUsers, ensureTestUsers } from "../test/users";
 import {
   handleDeleteRun,
@@ -12,8 +15,10 @@ import {
   handleUpdateRun,
 } from "./tools";
 import {
+  MCP_RESOURCE,
   MCP_PROTECTED_RESOURCE_METADATA_URL,
   mcpUnauthorizedResponse,
+  resetMcpSessionsForTests,
 } from "./server";
 
 const userId = "user_mcp_test_1";
@@ -172,6 +177,96 @@ describe("MCP HTTP auth", () => {
     expect(res.status).toBe(401);
     expect(res.headers.get("WWW-Authenticate")).toContain(
       MCP_PROTECTED_RESOURCE_METADATA_URL,
+    );
+  });
+});
+
+describe("MCP nutrition tool registration", () => {
+  const kid = "nutrition-tools-test-key";
+  let privateKey: CryptoKey;
+  let publicJwk: JWK;
+  let handlerSpy: { mockRestore(): void };
+
+  beforeAll(async () => {
+    const pair = await generateKeyPair("RS256");
+    privateKey = pair.privateKey;
+    publicJwk = await exportJWK(pair.publicKey);
+    publicJwk.kid = kid;
+    publicJwk.alg = "RS256";
+    publicJwk.use = "sig";
+    handlerSpy = vi.spyOn(auth, "handler").mockImplementation(async (req) => {
+      const url = String(req instanceof Request ? req.url : req);
+      if (url.includes("/jwks")) {
+        return new Response(JSON.stringify({ keys: [publicJwk] }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      throw new Error(`Unexpected auth.handler request: ${url}`);
+    });
+  });
+
+  afterAll(() => {
+    handlerSpy.mockRestore();
+    resetMcpSessionsForTests();
+  });
+
+  it("lists the four meal draft tools after session initialization", async () => {
+    const accessToken = await new SignJWT({})
+      .setProtectedHeader({ alg: "RS256", kid })
+      .setIssuer(AUTH_ISSUER)
+      .setAudience(MCP_RESOURCE)
+      .setSubject("user_mcp_nutrition_tools")
+      .setIssuedAt()
+      .setExpirationTime("5m")
+      .sign(privateKey);
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/json, text/event-stream",
+      "Content-Type": "application/json",
+    };
+    const initialize = await app.request("/mcp", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-06-18",
+          capabilities: {},
+          clientInfo: { name: "nutrition-tool-test", version: "1.0.0" },
+        },
+      }),
+    });
+    expect(initialize.status).toBe(200);
+    const sessionId = initialize.headers.get("mcp-session-id");
+    expect(sessionId).toBeTruthy();
+
+    const list = await app.request("/mcp", {
+      method: "POST",
+      headers: { ...headers, "mcp-session-id": sessionId! },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/list",
+        params: {},
+      }),
+    });
+    expect(list.status).toBe(200);
+    const responseText = await list.text();
+    const body = JSON.parse(
+      responseText.startsWith("event:")
+        ? responseText.match(/^data: (.+)$/m)?.[1] ?? ""
+        : responseText,
+    );
+    const names = body.result.tools.map((tool: { name: string }) => tool.name);
+    expect(names).toEqual(
+      expect.arrayContaining([
+        "create_meal_draft",
+        "get_meal_draft",
+        "confirm_meal_draft",
+        "discard_meal_draft",
+      ]),
     );
   });
 });

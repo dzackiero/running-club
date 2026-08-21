@@ -1,4 +1,6 @@
 import {
+  confirmMealDraftSchema,
+  createMealDraftSchema,
   createRunSchema,
   listRunsQuerySchema,
   summaryQuerySchema,
@@ -9,6 +11,13 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ZodError, z } from "zod";
 import { upsertCurrentGoal } from "../services/goals";
 import { getSummary, getWeekProgress } from "../services/insights";
+import {
+  NutritionError,
+  confirmMealDraft,
+  createMealDraft,
+  discardMealDraft,
+  getMealDraft,
+} from "../services/nutrition";
 import {
   createRun,
   deleteRun,
@@ -24,6 +33,14 @@ export const runIdToolSchema = z.object({
 });
 
 export const updateRunToolSchema = updateRunSchema.extend({
+  id: z.string().uuid(),
+});
+
+export const mealDraftIdToolSchema = z.object({
+  id: z.string().uuid(),
+});
+
+export const confirmMealDraftToolSchema = confirmMealDraftSchema.extend({
   id: z.string().uuid(),
 });
 
@@ -150,6 +167,65 @@ export async function handleGetSummary(
     return { content: [{ type: "text", text: jsonText(summary) }] };
   } catch (err) {
     if (err instanceof ZodError) return validationErrorResult(err);
+    throw err;
+  }
+}
+
+export async function handleCreateMealDraft(
+  userId: string,
+  input: unknown,
+): Promise<CallToolResult> {
+  try {
+    const parsed = createMealDraftSchema.parse(input);
+    const draft = await createMealDraft(userId, parsed);
+    return { content: [{ type: "text", text: jsonText(draft) }] };
+  } catch (err) {
+    if (err instanceof ZodError) return validationErrorResult(err);
+    throw err;
+  }
+}
+
+export async function handleGetMealDraft(
+  userId: string,
+  input: unknown,
+): Promise<CallToolResult> {
+  try {
+    const { id } = mealDraftIdToolSchema.parse(input);
+    const draft = await getMealDraft(userId, id);
+    return { content: [{ type: "text", text: jsonText(draft) }] };
+  } catch (err) {
+    if (err instanceof ZodError) return validationErrorResult(err);
+    if (err instanceof NutritionError) return notFoundResult("Meal draft not found");
+    throw err;
+  }
+}
+
+export async function handleConfirmMealDraft(
+  userId: string,
+  input: unknown,
+): Promise<CallToolResult> {
+  try {
+    const { id, ...confirmation } = confirmMealDraftToolSchema.parse(input);
+    const confirmed = await confirmMealDraft(userId, id, confirmation);
+    return { content: [{ type: "text", text: jsonText(confirmed) }] };
+  } catch (err) {
+    if (err instanceof ZodError) return validationErrorResult(err);
+    if (err instanceof NutritionError) return notFoundResult("Meal draft not found");
+    throw err;
+  }
+}
+
+export async function handleDiscardMealDraft(
+  userId: string,
+  input: unknown,
+): Promise<CallToolResult> {
+  try {
+    const { id } = mealDraftIdToolSchema.parse(input);
+    const discarded = await discardMealDraft(userId, id);
+    return { content: [{ type: "text", text: jsonText(discarded) }] };
+  } catch (err) {
+    if (err instanceof ZodError) return validationErrorResult(err);
+    if (err instanceof NutritionError) return notFoundResult("Meal draft not found");
     throw err;
   }
 }

@@ -17,6 +17,7 @@ import { sessionMiddleware } from "./middleware/session";
 import { goalsRoutes } from "./routes/goals";
 import { insightsRoutes } from "./routes/insights";
 import { integrationsRoutes } from "./routes/integrations";
+import { nutritionRoutes } from "./routes/nutrition";
 import { preferencesRoutes } from "./routes/preferences";
 import { plansRoutes } from "./routes/plans";
 import { runsRoutes } from "./routes/runs";
@@ -128,3 +129,7 @@ app.route("/integrations", integrationsRoutes);
 
 app.use("/preferences", requireUser);
 app.route("/preferences", preferencesRoutes);
+
+app.use("/nutrition", requireUser);
+app.use("/nutrition/*", requireUser);
+app.route("/nutrition", nutritionRoutes);

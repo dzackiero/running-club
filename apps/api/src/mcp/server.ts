@@ -3,6 +3,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import {
   createRunSchema,
+  createMealDraftSchema,
   summaryQuerySchema,
   upsertWeeklyGoalObjectSchema,
 } from "@running-club/shared";
@@ -10,6 +11,10 @@ import { env } from "../env";
 import { MCP_RESOURCE, verifyMcpAccessToken } from "./auth";
 import {
   handleDeleteRun,
+  handleConfirmMealDraft,
+  handleCreateMealDraft,
+  handleDiscardMealDraft,
+  handleGetMealDraft,
   handleGetRun,
   handleGetSummary,
   handleGetWeeklyProgress,
@@ -18,6 +23,8 @@ import {
   handleSetWeeklyGoal,
   handleUpdateRun,
   listRunsToolSchema,
+  confirmMealDraftToolSchema,
+  mealDraftIdToolSchema,
   runIdToolSchema,
   updateRunToolSchema,
 } from "./tools";
@@ -61,6 +68,46 @@ function createRunningClubMcpServer(userId: string): McpServer {
       inputSchema: createRunSchema.shape,
     },
     (args) => handleLogRun(userId, args),
+  );
+
+  server.registerTool(
+    "create_meal_draft",
+    {
+      description:
+        "Create a reviewable meal estimate from food and portion context supplied by the client. Optional image references are opaque only: do not fetch images or perform vision inference. Confirmation is required before this meal counts toward nutrition totals.",
+      inputSchema: createMealDraftSchema.shape,
+    },
+    (args) => handleCreateMealDraft(userId, args),
+  );
+
+  server.registerTool(
+    "get_meal_draft",
+    {
+      description:
+        "Get a pending meal draft so the user can review its food and portion estimate before confirmation. Drafts do not count toward nutrition totals.",
+      inputSchema: mealDraftIdToolSchema.shape,
+    },
+    (args) => handleGetMealDraft(userId, args),
+  );
+
+  server.registerTool(
+    "confirm_meal_draft",
+    {
+      description:
+        "Confirm a reviewed meal draft, optionally correcting food and portion details. Explicit user confirmation is required before nutrition totals count the meal.",
+      inputSchema: confirmMealDraftToolSchema.shape,
+    },
+    (args) => handleConfirmMealDraft(userId, args),
+  );
+
+  server.registerTool(
+    "discard_meal_draft",
+    {
+      description:
+        "Discard a pending meal draft when the user rejects its food or portion estimate. Discarded drafts never count toward nutrition totals.",
+      inputSchema: mealDraftIdToolSchema.shape,
+    },
+    (args) => handleDiscardMealDraft(userId, args),
   );
 
   server.registerTool(
