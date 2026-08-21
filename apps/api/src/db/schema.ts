@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import type { PlanDetails } from "@running-club/shared";
+import type { MealItem, PlanDetails } from "@running-club/shared";
 import {
   boolean,
   type AnyPgColumn,
@@ -218,6 +218,8 @@ export const userRelations = relations(user, ({ many }) => ({
   planTemplates: many(planTemplate),
   planOccurrences: many(planOccurrence),
   gymWorkouts: many(gymWorkout),
+  nutritionDays: many(nutritionDay),
+  meals: many(meal),
 }));
 
 export const sessionRelations = relations(session, ({ one, many }) => ({
@@ -540,6 +542,67 @@ export const gymSet = pgTable(
   }),
 );
 
+export const nutritionDay = pgTable(
+  "nutrition_day",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    date: date("date").notNull(),
+    targetCalories: real("target_calories"),
+    targetProteinGrams: real("target_protein_grams"),
+    targetCarbsGrams: real("target_carbs_grams"),
+    targetFatGrams: real("target_fat_grams"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    userDateUid: uniqueIndex("nutrition_day_user_date_uid").on(t.userId, t.date),
+  }),
+);
+
+export const meal = pgTable(
+  "meal",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    status: text("status").notNull().default("draft"),
+    items: jsonb("items").$type<MealItem[]>().notNull(),
+    totalCalories: real("total_calories").notNull(),
+    totalProteinGrams: real("total_protein_grams").notNull(),
+    totalCarbsGrams: real("total_carbs_grams").notNull(),
+    totalFatGrams: real("total_fat_grams").notNull(),
+    imageReference: text("image_reference"),
+    source: text("source").notNull().default("mcp"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    userOccurredAtIdx: index("meal_user_occurred_at_idx").on(
+      t.userId,
+      t.occurredAt,
+    ),
+    userStatusOccurredAtIdx: index("meal_user_status_occurred_at_idx").on(
+      t.userId,
+      t.status,
+      t.occurredAt,
+    ),
+  }),
+);
+
 export const planTemplateRelations = relations(planTemplate, ({ one, many }) => ({
   user: one(user, {
     fields: [planTemplate.userId],
@@ -587,5 +650,19 @@ export const gymSetRelations = relations(gymSet, ({ one }) => ({
   exercise: one(gymExercise, {
     fields: [gymSet.exerciseId],
     references: [gymExercise.id],
+  }),
+}));
+
+export const nutritionDayRelations = relations(nutritionDay, ({ one }) => ({
+  user: one(user, {
+    fields: [nutritionDay.userId],
+    references: [user.id],
+  }),
+}));
+
+export const mealRelations = relations(meal, ({ one }) => ({
+  user: one(user, {
+    fields: [meal.userId],
+    references: [user.id],
   }),
 }));

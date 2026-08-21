@@ -6,3 +6,4 @@ export * from "./insights";
 export * from "./errors";
 export * from "./plan";
 export * from "./gym";
+export * from "./nutrition";
