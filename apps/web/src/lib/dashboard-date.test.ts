@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, dateAtNoon, endOfDate, startOfDate, todayDateKey } from "./dashboard-date";
+import { addDays, dateAtNoon, endOfDate, isDateInRange, startOfDate, todayDateKey } from "./dashboard-date";
 
 describe("dashboard date navigation", () => {
   it("moves across month boundaries without changing the displayed calendar day", () => {
@@ -15,5 +15,10 @@ describe("dashboard date navigation", () => {
   it("creates inclusive UTC bounds for a selected weekly range", () => {
     expect(startOfDate("2026-08-17")).toBe("2026-08-17T00:00:00.000Z");
     expect(endOfDate("2026-08-23")).toBe("2026-08-23T23:59:59.999Z");
+  });
+
+  it("matches an activity timestamp to a selected day range", () => {
+    expect(isDateInRange("2026-08-21T00:01:00.000Z", "2026-08-21", "2026-08-21")).toBe(true);
+    expect(isDateInRange("2026-08-22T00:01:00.000Z", "2026-08-21", "2026-08-21")).toBe(false);
   });
 });

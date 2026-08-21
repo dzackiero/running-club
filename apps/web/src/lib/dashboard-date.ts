@@ -10,6 +10,11 @@ export function endOfDate(date: string): string {
   return `${date}T23:59:59.999Z`;
 }
 
+export function isDateInRange(iso: string, start: string, end: string): boolean {
+  const date = iso.slice(0, 10);
+  return date >= start && date <= end;
+}
+
 export function addDays(date: string, amount: number): string {
   const value = new Date(dateAtNoon(date));
   value.setUTCDate(value.getUTCDate() + amount);

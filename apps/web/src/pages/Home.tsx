@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, MoreVertical } from "lucide-react";
+import { ChevronLeft, ChevronRight, Dumbbell, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { AppLoading } from "@/components/AppLoading";
 import { EditRunDialog } from "@/components/EditRunDialog";
@@ -13,10 +13,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Separator } from "@/components/ui/separator";
 import { ActivityIcon } from "@/lib/activity";
 import { activityLabel } from "@/lib/activity-data";
-import { deleteRun, getTodayDashboard, listRuns, type PlanOccurrenceRecord, type RunRecord, type TodayDashboard } from "@/lib/api";
+import { deleteRun, getTodayDashboard, listGymWorkouts, listRuns, type GymWorkoutRecord, type PlanOccurrenceRecord, type RunRecord, type TodayDashboard } from "@/lib/api";
 import { formatDateParts, formatDurationClock, formatKm, formatPace, formatWeekRange, formatWeekYear } from "@/lib/format";
 import { createLatestRequestGuard } from "@/lib/latest-request";
-import { addDays, dateAtNoon, endOfDate, startOfDate, todayDateKey } from "@/lib/dashboard-date";
+import { addDays, dateAtNoon, endOfDate, isDateInRange, startOfDate, todayDateKey } from "@/lib/dashboard-date";
 
 function RunRow({ run, onEdit, onDeleted }: { run: RunRecord; onEdit: (run: RunRecord) => void; onDeleted: () => void }) {
   const { date, weekday } = formatDateParts(run.startedAt);
@@ -31,6 +31,12 @@ function RunRow({ run, onEdit, onDeleted }: { run: RunRecord; onEdit: (run: RunR
   return <li className="border-b border-border text-sm last:border-b-0"><div className="relative px-2.5 transition-colors hover:bg-foreground/4"><Link to={`/runs/${run.id}`} className="flex min-w-0 gap-2.5 py-3 pr-10 outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`View ${activityLabel(run.activityType)} on ${date}`}><span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-secondary"><ActivityIcon type={run.activityType} /></span><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate font-medium">{activityLabel(run.activityType)}</p><p className="truncate text-xs text-muted-foreground">{weekday} · {date}{run.notes ? ` · ${run.notes}` : ""}</p></div><p className="shrink-0 font-medium tabular-nums">{formatKm(run.distanceMeters)} <span className="font-normal text-muted-foreground">km</span></p></div><p className="mt-1 flex gap-3 text-xs tabular-nums text-muted-foreground"><span className="font-(family-name:--font-stat) text-sm font-bold text-foreground">{formatPace(run.avgPaceSecPerKm)}</span><span>{formatDurationClock(run.durationSeconds)}</span></p></div></Link><div className="absolute top-3 right-2.5" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}><DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon-sm" className="text-muted-foreground hover:bg-transparent hover:text-foreground" aria-label="Run actions" disabled={deleting}><MoreVertical /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem asChild><Link to={`/runs/${run.id}`}>View details</Link></DropdownMenuItem><DropdownMenuItem onClick={() => onEdit(run)}>Edit</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onClick={handleDelete}>Delete</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></div></li>;
 }
 
+function GymRow({ workout }: { workout: GymWorkoutRecord }) {
+  const { date, weekday } = formatDateParts(workout.occurredAt);
+  const exercises = workout.exercises.map((exercise) => exercise.name).slice(0, 2).join(" · ");
+  return <li className="border-b border-border text-sm last:border-b-0"><div className="flex min-w-0 gap-2.5 px-2.5 py-3"><span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-secondary"><Dumbbell className="size-4 text-primary" aria-hidden /></span><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate font-medium">Gym workout</p><p className="truncate text-xs text-muted-foreground">{weekday} · {date}{exercises ? ` · ${exercises}` : ""}</p></div><p className="shrink-0 text-sm text-muted-foreground tabular-nums">{workout.exercises.length} {workout.exercises.length === 1 ? "exercise" : "exercises"}</p></div>{workout.notes ? <p className="mt-1 truncate text-xs text-muted-foreground">{workout.notes}</p> : null}</div></div></li>;
+}
+
 function WeekNavigator({ date, week, onSelectDay }: { date: string; week: TodayDashboard["week"]; onSelectDay: (date: string) => void }) {
   const start = new Date(startOfDate(week.start));
   const end = new Date(endOfDate(week.end));
@@ -41,6 +47,8 @@ function WeekNavigator({ date, week, onSelectDay }: { date: string; week: TodayD
 export function Home() {
   const [dashboard, setDashboard] = useState<TodayDashboard | null>(null);
   const [runs, setRuns] = useState<RunRecord[]>([]);
+  const [gymWorkouts, setGymWorkouts] = useState<GymWorkoutRecord[]>([]);
+  const [activityView, setActivityView] = useState<"day" | "week">("day");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingRun, setEditingRun] = useState<RunRecord | null>(null);
@@ -58,19 +66,28 @@ export function Home() {
       return;
     }
     setDashboard(todayResult.value); setError(null);
-    const runsResult = await Promise.allSettled([listRuns({ limit: 50, from: startOfDate(todayResult.value.week.start), to: endOfDate(todayResult.value.week.end) })]);
+    const start = activityView === "day" ? todayResult.value.date : todayResult.value.week.start;
+    const end = activityView === "day" ? todayResult.value.date : todayResult.value.week.end;
+    const [runsResult, workoutsResult] = await Promise.allSettled([listRuns({ limit: 50, from: startOfDate(start), to: endOfDate(end) }), listGymWorkouts()]);
     if (!refreshGuard.current.isLatest(requestId)) return;
-    if (runsResult[0].status === "fulfilled") setRuns(runsResult[0].value);
-    else toast.error(runsResult[0].reason instanceof Error ? runsResult[0].reason.message : "Failed to load weekly activity");
+    if (runsResult.status === "fulfilled") setRuns(runsResult.value);
+    else toast.error(runsResult.reason instanceof Error ? runsResult.reason.message : "Failed to load activity");
+    if (workoutsResult.status === "fulfilled") setGymWorkouts(workoutsResult.value.filter((workout) => isDateInRange(workout.occurredAt, start, end)));
+    else toast.error(workoutsResult.reason instanceof Error ? workoutsResult.reason.message : "Failed to load gym activity");
     setLoading(false);
-  }, [selectedDate]);
+  }, [activityView, selectedDate]);
   useEffect(() => { void refresh(); }, [refresh]);
   if (loading && !dashboard) return <AppLoading />;
   return <section className="space-y-8">
     {error && !dashboard ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
     {dashboard ? <><WeekNavigator date={dashboard.date} week={dashboard.week} onSelectDay={setSelectedDate} /><TodayAgenda date={dashboard.date} items={dashboard.items} nutrition={dashboard.week.nutrition} onChanged={() => void refresh()} onLogGym={setGymOccurrence} /><WeeklyOverview week={dashboard.week} today={dashboard.date} onSelectDay={setSelectedDate} /></> : null}
-    <section aria-labelledby="weekly-runs"><div className="mb-2 flex items-center justify-between gap-2"><div><p className="text-xs font-semibold tracking-wide text-primary uppercase">Activity</p><h2 id="weekly-runs" className="text-xl font-semibold tracking-tight">Runs this week</h2></div><Link to="/activity" className="text-sm text-primary underline-offset-4 hover:underline">All activity</Link></div><Separator className="mb-1" />{runs.length === 0 ? <p className="pt-4 text-sm text-muted-foreground">No runs in this week yet. Connect Intervals or log one from chat.</p> : <ul className="overflow-hidden rounded-lg border border-border">{runs.map((run) => <RunRow key={run.id} run={run} onEdit={setEditingRun} onDeleted={() => void refresh()} />)}</ul>}</section>
+    <ActivityFeed view={activityView} onViewChange={setActivityView} runs={runs} workouts={gymWorkouts} onEditRun={setEditingRun} onChanged={() => void refresh()} />
     {editingRun ? <EditRunDialog open onOpenChange={(open) => { if (!open) setEditingRun(null); }} run={editingRun} onSaved={() => void refresh()} /> : null}
     <GymWorkoutDialog occurrence={gymOccurrence} open={gymOccurrence !== null} onOpenChange={(open) => { if (!open) setGymOccurrence(null); }} onSaved={() => void refresh()} />
   </section>;
+}
+
+function ActivityFeed({ view, onViewChange, runs, workouts, onEditRun, onChanged }: { view: "day" | "week"; onViewChange: (view: "day" | "week") => void; runs: RunRecord[]; workouts: GymWorkoutRecord[]; onEditRun: (run: RunRecord) => void; onChanged: () => void }) {
+  const items = [...runs.map((run) => ({ kind: "run" as const, occurredAt: run.startedAt, value: run })), ...workouts.map((workout) => ({ kind: "gym" as const, occurredAt: workout.occurredAt, value: workout }))].sort((left, right) => new Date(right.occurredAt).getTime() - new Date(left.occurredAt).getTime());
+  return <section aria-labelledby="activity-feed"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><div><p className="text-xs font-semibold tracking-wide text-primary uppercase">Activity</p><h2 id="activity-feed" className="text-xl font-semibold tracking-tight">{view === "day" ? "Selected day" : "Selected week"}</h2></div><Link to="/activity" className="text-sm text-primary underline-offset-4 hover:underline">All activity</Link></div><div className="mb-3 inline-flex rounded-lg border border-border p-0.5" role="group" aria-label="Activity range"><Button type="button" size="sm" variant={view === "day" ? "default" : "ghost"} onClick={() => onViewChange("day")} aria-pressed={view === "day"}>Day</Button><Button type="button" size="sm" variant={view === "week" ? "default" : "ghost"} onClick={() => onViewChange("week")} aria-pressed={view === "week"}>Week</Button></div><Separator className="mb-1" />{items.length === 0 ? <p className="pt-4 text-sm text-muted-foreground">No activity in this {view} yet.</p> : <ul className="overflow-hidden rounded-lg border border-border">{items.map((item) => item.kind === "run" ? <RunRow key={`run-${item.value.id}`} run={item.value} onEdit={onEditRun} onDeleted={onChanged} /> : <GymRow key={`gym-${item.value.id}`} workout={item.value} />)}</ul>}</section>;
 }
