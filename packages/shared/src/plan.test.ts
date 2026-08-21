@@ -56,6 +56,12 @@ describe("updatePlanOccurrenceSchema", () => {
   it("rejects an unsupported occurrence status", () => {
     expect(() => updatePlanOccurrenceSchema.parse({ status: "cancelled" })).toThrow();
   });
+
+  it("accepts a linked run as an implicit completed occurrence", () => {
+    expect(updatePlanOccurrenceSchema.parse({ linkedRunId: "run-1" })).toEqual({
+      linkedRunId: "run-1",
+    });
+  });
 });
 
 describe("todayDashboardSchema", () => {

@@ -1,13 +1,18 @@
-import type { PlanOccurrenceRecord, TodayDashboard } from "@running-club/shared";
+import { useState } from "react";
+import type { PlanOccurrenceRecord, TodayDashboard, RunRecord } from "@running-club/shared";
 import { Check, Circle, Dumbbell, Leaf, RotateCcw, SkipForward } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { patchPlanOccurrence } from "@/lib/api";
+import { activityLabel } from "@/lib/activity-data";
+import { formatDate, formatDuration, formatKm } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 type TodayAgendaProps = {
   date: string;
   items: PlanOccurrenceRecord[];
+  runs: RunRecord[];
   nutrition: TodayDashboard["week"]["nutrition"];
   onChanged: () => void;
   onLogGym: (item: PlanOccurrenceRecord) => void;
@@ -42,7 +47,8 @@ function detailsLabel(item: PlanOccurrenceRecord) {
   ].filter(Boolean).join(" · ");
 }
 
-export function TodayAgenda({ date, items, nutrition, onChanged, onLogGym }: TodayAgendaProps) {
+export function TodayAgenda({ date, items, runs, nutrition, onChanged, onLogGym }: TodayAgendaProps) {
+  const [attachingOccurrence, setAttachingOccurrence] = useState<PlanOccurrenceRecord | null>(null);
   const changeStatus = async (id: string, status: "planned" | "done" | "skipped") => {
     try {
       await patchPlanOccurrence(id, { status });
@@ -92,12 +98,14 @@ export function TodayAgenda({ date, items, nutrition, onChanged, onLogGym }: Tod
                     <div className="mt-3 flex flex-wrap gap-2">
                       {item.status === "planned" ? (
                         <>
+                          {item.category === "run" ? <Button type="button" size="sm" onClick={() => setAttachingOccurrence(item)}>Attach run</Button> : null}
                           {item.category === "gym" ? (
                             <Button type="button" size="sm" onClick={() => onLogGym(item)}>Log workout</Button>
                           ) : null}
-                          <Button type="button" size="sm" variant={item.category === "gym" ? "outline" : "default"} onClick={() => void changeStatus(item.id, "done")}>
+                          {item.category === "nutrition" ? <p className="self-center text-xs text-muted-foreground">Progress comes from confirmed meals.</p> : null}
+                          {item.category === "gym" ? <Button type="button" size="sm" variant="outline" onClick={() => void changeStatus(item.id, "done")}>
                             <Check /> Mark done
-                          </Button>
+                          </Button> : null}
                           <Button type="button" size="sm" variant="ghost" onClick={() => void changeStatus(item.id, "skipped")}>
                             <SkipForward /> Skip
                           </Button>
@@ -115,7 +123,26 @@ export function TodayAgenda({ date, items, nutrition, onChanged, onLogGym }: Tod
           })}
         </ul>
       )}
+      <AttachRunDialog occurrence={attachingOccurrence} runs={runs.filter((run) => run.startedAt.slice(0, 10) === date)} onOpenChange={(open) => { if (!open) setAttachingOccurrence(null); }} onAttached={() => { setAttachingOccurrence(null); onChanged(); }} />
       {nutrition.today.targetProteinGrams != null ? <p className="text-sm text-muted-foreground">Protein today: {Math.round(nutrition.today.proteinGrams)} / {Math.round(nutrition.today.targetProteinGrams)} g. Log meals through MCP, then confirm the draft before it counts.</p> : null}
     </section>
   );
+}
+
+function AttachRunDialog({ occurrence, runs, onOpenChange, onAttached }: { occurrence: PlanOccurrenceRecord | null; runs: RunRecord[]; onOpenChange: (open: boolean) => void; onAttached: () => void }) {
+  const [saving, setSaving] = useState<string | null>(null);
+  async function attach(run: RunRecord) {
+    if (!occurrence) return;
+    setSaving(run.id);
+    try {
+      await patchPlanOccurrence(occurrence.id, { linkedRunId: run.id });
+      toast.success("Run attached to plan");
+      onAttached();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to attach run");
+    } finally {
+      setSaving(null);
+    }
+  }
+  return <Dialog open={occurrence !== null} onOpenChange={onOpenChange}><DialogContent><DialogHeader><DialogTitle>Attach a run</DialogTitle><DialogDescription>Choose the run that completed {occurrence?.title ?? "this plan"}.</DialogDescription></DialogHeader>{runs.length === 0 ? <p className="rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">No runs were logged on this date.</p> : <ul className="divide-y divide-border rounded-lg border border-border">{runs.map((run) => <li key={run.id}><Button type="button" variant="ghost" className="h-auto w-full justify-between rounded-none px-3 py-3 text-left" disabled={saving !== null} onClick={() => void attach(run)}><span><span className="block font-medium">{activityLabel(run.activityType)} · {formatKm(run.distanceMeters)} km</span><span className="mt-0.5 block text-xs font-normal text-muted-foreground">{formatDate(run.startedAt)} · {formatDuration(run.durationSeconds)}</span></span>{saving === run.id ? <span className="text-xs">Attaching…</span> : null}</Button></li>)}</ul>}</DialogContent></Dialog>;
 }

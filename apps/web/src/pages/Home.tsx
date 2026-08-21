@@ -80,7 +80,7 @@ export function Home() {
   if (loading && !dashboard) return <AppLoading />;
   return <section className="space-y-8">
     {error && !dashboard ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
-    {dashboard ? <><WeekNavigator date={dashboard.date} week={dashboard.week} onSelectDay={setSelectedDate} /><TodayAgenda date={dashboard.date} items={dashboard.items} nutrition={dashboard.week.nutrition} onChanged={() => void refresh()} onLogGym={setGymOccurrence} /><WeeklyOverview week={dashboard.week} today={dashboard.date} onSelectDay={setSelectedDate} /></> : null}
+    {dashboard ? <><WeekNavigator date={dashboard.date} week={dashboard.week} onSelectDay={setSelectedDate} /><TodayAgenda date={dashboard.date} items={dashboard.items} runs={runs} nutrition={dashboard.week.nutrition} onChanged={() => void refresh()} onLogGym={setGymOccurrence} /><WeeklyOverview week={dashboard.week} today={dashboard.date} onSelectDay={setSelectedDate} /></> : null}
     <ActivityFeed view={activityView} onViewChange={setActivityView} runs={runs} workouts={gymWorkouts} onEditRun={setEditingRun} onChanged={() => void refresh()} />
     {editingRun ? <EditRunDialog open onOpenChange={(open) => { if (!open) setEditingRun(null); }} run={editingRun} onSaved={() => void refresh()} /> : null}
     <GymWorkoutDialog occurrence={gymOccurrence} open={gymOccurrence !== null} onOpenChange={(open) => { if (!open) setGymOccurrence(null); }} onSaved={() => void refresh()} />

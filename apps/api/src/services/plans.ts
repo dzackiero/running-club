@@ -8,7 +8,7 @@ import type {
 } from "@running-club/shared";
 import { and, asc, eq, gte, inArray, lte } from "drizzle-orm";
 import { db } from "../db/client";
-import { meal, nutritionDay, planOccurrence, planTemplate } from "../db/schema";
+import { meal, nutritionDay, planOccurrence, planTemplate, run } from "../db/schema";
 import { getWeekBounds } from "../lib/period";
 
 type PlanTemplateRow = typeof planTemplate.$inferSelect;
@@ -144,25 +144,45 @@ export async function updatePlanOccurrence(
   id: string,
   input: UpdatePlanOccurrenceInput,
 ): Promise<PlanOccurrenceRecord | null> {
-  const now = new Date();
-  const changes: Partial<typeof planOccurrence.$inferInsert> = {
-    overriddenAt: now,
-    updatedAt: now,
-  };
-  if (input.status !== undefined) {
-    changes.status = input.status;
-    changes.completedAt = input.status === "done" ? now : null;
-  }
-  if (input.title !== undefined) changes.title = input.title;
-  if (input.category !== undefined) changes.category = input.category;
-  if (input.details !== undefined) changes.details = input.details;
+  return db.transaction(async (tx) => {
+    const [current] = await tx
+      .select()
+      .from(planOccurrence)
+      .where(and(eq(planOccurrence.id, id), eq(planOccurrence.userId, userId)))
+      .limit(1);
+    if (!current) return null;
 
-  const [row] = await db
-    .update(planOccurrence)
-    .set(changes)
-    .where(and(eq(planOccurrence.id, id), eq(planOccurrence.userId, userId)))
-    .returning();
-  return row ? toPlanOccurrenceRecord(row) : null;
+    const now = new Date();
+    const changes: Partial<typeof planOccurrence.$inferInsert> = {
+      overriddenAt: now,
+      updatedAt: now,
+    };
+    if (input.linkedRunId !== undefined) {
+      if (current.category !== "run") return null;
+      const [linkedRun] = await tx
+        .select({ id: run.id, startedAt: run.startedAt })
+        .from(run)
+        .where(and(eq(run.id, input.linkedRunId), eq(run.userId, userId)))
+        .limit(1);
+      if (!linkedRun || dateKey(linkedRun.startedAt) !== current.date) return null;
+      changes.linkedRunId = linkedRun.id;
+      changes.status = "done";
+      changes.completedAt = now;
+    } else if (input.status !== undefined) {
+      changes.status = input.status;
+      changes.completedAt = input.status === "done" ? now : null;
+    }
+    if (input.title !== undefined) changes.title = input.title;
+    if (input.category !== undefined) changes.category = input.category;
+    if (input.details !== undefined) changes.details = input.details;
+
+    const [row] = await tx
+      .update(planOccurrence)
+      .set(changes)
+      .where(and(eq(planOccurrence.id, id), eq(planOccurrence.userId, userId)))
+      .returning();
+    return row ? toPlanOccurrenceRecord(row) : null;
+  });
 }
 
 export async function linkSinglePlannedRunOccurrence(

@@ -67,6 +67,7 @@ export const updatePlanOccurrenceSchema = z
     title: z.string().min(1).max(200).optional(),
     category: planCategorySchema.optional(),
     details: occurrenceUpdateDetailsSchema.optional(),
+    linkedRunId: z.string().min(1).optional(),
   })
   .superRefine((value, context) => {
     if (Object.keys(value).length === 0) {
@@ -95,6 +96,14 @@ export const updatePlanOccurrenceSchema = z
           path: ["details"],
         });
       }
+    }
+
+    if (value.linkedRunId !== undefined && value.status !== undefined && value.status !== "done") {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "a linked run must complete the occurrence",
+        path: ["status"],
+      });
     }
   });
 export type UpdatePlanOccurrenceInput = z.infer<

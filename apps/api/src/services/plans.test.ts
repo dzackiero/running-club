@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { db } from "../db/client";
-import { planOccurrence, planTemplate } from "../db/schema";
+import { planOccurrence, planTemplate, run } from "../db/schema";
 import { deleteTestUsers, ensureTestUsers } from "../test/users";
 import {
   ensurePlanOccurrences,
@@ -96,6 +96,36 @@ describe("plans service", () => {
       .from(planOccurrence)
       .where(eq(planOccurrence.id, occurrenceId));
     expect(stored?.status).toBe("planned");
+  });
+
+  it("attaches a same-day run and completes the planned run occurrence", async () => {
+    const occurrenceId = crypto.randomUUID();
+    const runId = crypto.randomUUID();
+    await db.insert(planOccurrence).values({
+      id: occurrenceId,
+      userId: recurrenceUserId,
+      date: "2026-08-04",
+      category: "run",
+      title: "Easy run",
+      details: { targetDistanceMeters: 5000 },
+    });
+    await db.insert(run).values({
+      id: runId,
+      userId: recurrenceUserId,
+      startedAt: new Date("2026-08-04T07:00:00.000Z"),
+      distanceMeters: 5000,
+      durationSeconds: 1800,
+      activityType: "run",
+      source: "manual",
+    });
+
+    await expect(
+      updatePlanOccurrence(recurrenceUserId, occurrenceId, { linkedRunId: runId }),
+    ).resolves.toMatchObject({
+      id: occurrenceId,
+      status: "done",
+      linkedRunId: runId,
+    });
   });
 
   it("returns a seven-day dashboard with category progress counts", async () => {
